@@ -67,11 +67,11 @@ npm run preview    # serve the production build
 
 ## Deploying
 
-Zenpad runs on Cloudflare Workers as static assets, configured in `wrangler.jsonc`. The build also writes a `_headers` file, so Cloudflare sends the security policy as a real HTTP header.
+Zenpad is hosted on Cloudflare Pages at https://zenpad.pages.dev, configured in `wrangler.jsonc`. The build also writes a `_headers` file, so Cloudflare sends the security policy as a real HTTP header.
 
-GitHub Actions (`.github/workflows/ci.yml`) runs the type check, lint, tests, and build on every pull request and push. Pushes to `main` then deploy with `wrangler deploy`. Deploys need two settings on the GitHub repo:
+GitHub Actions (`.github/workflows/ci.yml`) runs the type check, lint, tests, and build on every pull request and push. Pushes to `main` then deploy with `wrangler pages deploy`. Deploys need two settings on the GitHub repo:
 
-- `CLOUDFLARE_API_TOKEN` (secret): a Cloudflare API token made from the "Edit Cloudflare Workers" template.
+- `CLOUDFLARE_API_TOKEN` (secret): a Cloudflare API token with the "Cloudflare Pages: Edit" account permission.
 - `CLOUDFLARE_ACCOUNT_ID` (variable): your Cloudflare account ID.
 
 To deploy by hand, run `npx wrangler login` once, then `npm run deploy`.
