@@ -9,6 +9,7 @@ Zenpad was built for writing AI prompts, but it works for any writing where you 
 - **Focused writing.** A single centered page in a warm serif. The top bar and status bar fade away while you type and come back when you move the mouse.
 - **@snippets.** Type `@` to insert a saved snippet. Snippets stay linked: edit one and every note that uses it picks up the change.
 - **Copy with snippets filled in.** `⌘ Enter` copies the note with every `@snippet` replaced by its full text. Snippets can contain other snippets, and loops are detected.
+- **Favorites.** Star a note to pin it to a Favorites section at the top of the sidebar. The Favorites, Notes, and Snippets sections each collapse, and Zenpad remembers which ones you closed.
 - **Search and commands.** `⌘ K` searches every note and snippet and runs every command.
 - **Private by design.** No server, no accounts, no analytics. Notes live in your browser's IndexedDB.
 - **Works offline.** Installable as an app (PWA) that loads with no network.
@@ -75,8 +76,9 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on every pull request and push:
 - **check**: type check, lint (warnings fail the build), unit tests, and `npm audit` of production dependencies.
 - **node-compat**: unit tests and build on Node 20.19 and 22, the oldest versions `package.json` supports.
 - **build**: the production build, then Playwright smoke tests that load it in Chromium and fail on any console error or CSP violation, check that notes survive a reload, and check that the app loads offline.
+- **preview**: each pull request from a branch in this repo gets a preview deploy at `https://pr-<number>.zenpad.pages.dev`, which updates on every push and is linked in a comment on the PR. Pull requests from forks skip the preview, since they can't read the repo's secrets.
 
-Pushes to `main` then deploy the exact `dist/` the smoke tests ran against with `wrangler pages deploy`. Dependabot (`.github/dependabot.yml`) opens weekly update PRs for npm packages and GitHub Actions. Deploys need two settings on the GitHub repo:
+Pushes to `main` then deploy with `wrangler pages deploy`. Previews and production both deploy the exact `dist/` the smoke tests ran against. Dependabot (`.github/dependabot.yml`) opens weekly update PRs for npm packages and GitHub Actions. Deploys need two settings on the GitHub repo:
 
 - `CLOUDFLARE_API_TOKEN` (secret): a Cloudflare API token with the "Cloudflare Pages: Edit" account permission.
 - `CLOUDFLARE_ACCOUNT_ID` (variable): your Cloudflare account ID.

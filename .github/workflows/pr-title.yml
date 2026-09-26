@@ -1,0 +1,25 @@
+name: PR title
+
+on:
+  pull_request:
+    branches: [main]
+    # "edited" re-runs the check when the title is fixed.
+    types: [opened, edited, reopened, synchronize]
+
+permissions: {}
+
+jobs:
+  conventional-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title follows Conventional Commits
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9._/-]+\))?!?: [^ ].*$'
+          if [[ "$TITLE" =~ $pattern ]]; then
+            echo "PR title OK: $TITLE"
+          else
+            echo "::error title=PR title is not a Conventional Commit::Got \"$TITLE\". Use <type>(<optional scope>): <description>, e.g. \"feat(editor): add snippet preview\". Allowed types: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert."
+            exit 1
+          fi
