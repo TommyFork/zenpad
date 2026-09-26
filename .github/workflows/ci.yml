@@ -10,7 +10,8 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Superseded PR runs are cancelled, but runs on main are left to finish so a deploy is never cut off mid-way.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   check:
@@ -33,7 +34,9 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
 
   # package.json promises Node 20.19+, so make sure the oldest supported release still builds and tests.
+  # Runs on main only, where it gates the deploy; PRs rarely break this and it would cost two runners each time.
   node-compat:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
