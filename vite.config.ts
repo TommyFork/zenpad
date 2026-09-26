@@ -51,6 +51,10 @@ function contentSecurityPolicy(): Plugin {
 }
 
 export default defineConfig({
+  build: {
+    // Vite inlines small files as data: URLs, which font-src 'self' blocks, so fonts are always emitted as files.
+    assetsInlineLimit: (file) => (file.endsWith('.woff2') ? false : undefined),
+  },
   plugins: [
     react(),
     contentSecurityPolicy(),
