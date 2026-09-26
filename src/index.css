@@ -137,6 +137,8 @@ button {
   cursor: pointer;
 }
 
+/* Hover styles sit inside @media (hover: hover) because touch screens keep :hover after a tap, leaving buttons looking pressed. */
+
 button:focus-visible,
 input:focus-visible {
   outline: 2px solid var(--accent);
@@ -195,8 +197,10 @@ kbd {
   opacity: 0.35;
 }
 
-.is-writing .sidebar:hover {
-  opacity: 1;
+@media (hover: hover) {
+  .is-writing .sidebar:hover {
+    opacity: 1;
+  }
 }
 
 .sidebar-head {
@@ -224,9 +228,11 @@ kbd {
   transition: background-color 0.15s, color 0.15s;
 }
 
-.icon-button:hover {
-  background: var(--line);
-  color: var(--ink);
+@media (hover: hover) {
+  .icon-button:hover {
+    background: var(--line);
+    color: var(--ink);
+  }
 }
 
 .icon-button.small {
@@ -247,9 +253,11 @@ kbd {
   transition: background-color 0.15s, color 0.15s;
 }
 
-.search-trigger:hover {
-  color: var(--ink);
-  background: var(--line-strong);
+@media (hover: hover) {
+  .search-trigger:hover {
+    color: var(--ink);
+    background: var(--line-strong);
+  }
 }
 
 .search-trigger span {
@@ -302,8 +310,10 @@ kbd {
   transition: background-color 0.15s;
 }
 
-.doc-item:hover {
-  background: var(--line);
+@media (hover: hover) {
+  .doc-item:hover {
+    background: var(--line);
+  }
 }
 
 .doc-item[aria-current='page'] {
@@ -396,9 +406,11 @@ kbd {
   transition: background-color 0.15s, color 0.15s;
 }
 
-.foot-button:hover {
-  background: var(--line);
-  color: var(--ink);
+@media (hover: hover) {
+  .foot-button:hover {
+    background: var(--line);
+    color: var(--ink);
+  }
 }
 
 /* Stage */
@@ -451,9 +463,11 @@ kbd {
   transition: background-color 0.15s, color 0.15s;
 }
 
-.back-link:hover {
-  background: var(--line);
-  color: var(--ink);
+@media (hover: hover) {
+  .back-link:hover {
+    background: var(--line);
+    color: var(--ink);
+  }
 }
 
 .back-link span {
@@ -476,8 +490,10 @@ kbd {
   transition: background-color 0.15s, transform 0.1s;
 }
 
-.copy-button:hover {
-  background: var(--accent-wash-strong);
+@media (hover: hover) {
+  .copy-button:hover {
+    background: var(--accent-wash-strong);
+  }
 }
 
 .copy-button:active {
@@ -546,8 +562,10 @@ kbd {
   transition: border-color 0.15s;
 }
 
-.snippet-name-field input:hover {
-  border-bottom-color: var(--line-strong);
+@media (hover: hover) {
+  .snippet-name-field input:hover {
+    border-bottom-color: var(--line-strong);
+  }
 }
 
 .snippet-name-field input:focus {
@@ -594,7 +612,6 @@ kbd {
   transition: background-color 0.15s, color 0.15s;
 }
 
-/* Touch screens keep :hover after a tap, which would leave the button looking active. */
 @media (hover: hover) {
   .preview-button:hover {
     background: var(--line);
@@ -726,9 +743,11 @@ kbd {
   transition: background-color 0.15s, box-shadow 0.15s;
 }
 
-.has-highlights .preview-snippet:hover:not(:has(.preview-snippet:hover)) {
-  background: var(--accent-wash-strong);
-  box-shadow: 0 0 0 2px var(--accent-wash-strong);
+@media (hover: hover) {
+  .has-highlights .preview-snippet:hover:not(:has(.preview-snippet:hover)) {
+    background: var(--accent-wash-strong);
+    box-shadow: 0 0 0 2px var(--accent-wash-strong);
+  }
 }
 
 .preview-chip {
@@ -1006,8 +1025,10 @@ kbd {
   transition: background-color 0.15s;
 }
 
-.soft-button:hover {
-  background: var(--line-strong);
+@media (hover: hover) {
+  .soft-button:hover {
+    background: var(--line-strong);
+  }
 }
 
 .overlay-centered {
@@ -1057,8 +1078,10 @@ kbd {
   transition: filter 0.15s, transform 0.1s;
 }
 
-.danger-button:hover {
-  filter: brightness(1.08);
+@media (hover: hover) {
+  .danger-button:hover {
+    filter: brightness(1.08);
+  }
 }
 
 .danger-button:active {
