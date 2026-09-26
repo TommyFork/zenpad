@@ -32,6 +32,33 @@ export function expandSnippets(
   })
 }
 
+export type ExpansionPart =
+  | { kind: 'text'; text: string }
+  | { kind: 'snippet'; name: string; parts: ExpansionPart[] }
+  // A reference left as written: no snippet has this name, or expanding it would loop.
+  | { kind: 'unresolved'; name: string; reason: 'missing' | 'loop' }
+
+// The same expansion as expandSnippets, but keeping track of which text came from which snippet.
+export function expandSnippetParts(
+  text: string,
+  bodies: ReadonlyMap<string, string>,
+  trail: readonly string[] = [],
+): ExpansionPart[] {
+  const parts: ExpansionPart[] = []
+  let last = 0
+  for (const match of text.matchAll(snippetTokenPattern())) {
+    const name = match[1]
+    if (match.index > last) parts.push({ kind: 'text', text: text.slice(last, match.index) })
+    const body = bodies.get(name)
+    if (body === undefined) parts.push({ kind: 'unresolved', name, reason: 'missing' })
+    else if (trail.includes(name)) parts.push({ kind: 'unresolved', name, reason: 'loop' })
+    else parts.push({ kind: 'snippet', name, parts: expandSnippetParts(body, bodies, [...trail, name]) })
+    last = match.index + match[0].length
+  }
+  if (last < text.length) parts.push({ kind: 'text', text: text.slice(last) })
+  return parts
+}
+
 export function referencedSnippetNames(text: string): string[] {
   const names = [...text.matchAll(snippetTokenPattern())].map((match) => match[1])
   return [...new Set(names)]

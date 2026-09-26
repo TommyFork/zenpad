@@ -9,6 +9,7 @@ Zenpad was built for writing AI prompts, but it works for any writing where you 
 - **Focused writing.** A single centered page in a warm serif. The top bar and status bar fade away while you type and come back when you move the mouse.
 - **@snippets.** Type `@` to insert a saved snippet. Snippets stay linked: edit one and every note that uses it picks up the change.
 - **Copy with snippets filled in.** `⌘ Enter` copies the note with every `@snippet` replaced by its full text. Snippets can contain other snippets, and loops are detected.
+- **Preview with snippets filled in.** `⌘ E` shows the note as it will be copied, with every snippet filled in. Filled-in text is tinted so you can see where each snippet starts and ends, and you can turn the tint off for a clean read. `Esc` goes back to editing.
 - **Favorites.** Star a note to pin it to a Favorites section at the top of the sidebar. The Favorites, Notes, and Snippets sections each collapse, and Zenpad remembers which ones you closed.
 - **Search and commands.** `⌘ K` searches every note and snippet and runs every command.
 - **Private by design.** No server, no accounts, no analytics. Notes live in your browser's IndexedDB.
@@ -21,9 +22,10 @@ Zenpad was built for writing AI prompts, but it works for any writing where you 
 | --- | --- |
 | `⌘ K` | Search and commands |
 | `⌘ Enter` | Copy with snippets filled in |
+| `⌘ E` | Preview with snippets filled in, or back to editing |
 | `⌘ \` | Show or hide the sidebar |
 | `⌘ ⌥ N` | New note |
-| `⌘ click` on an `@snippet` | Open it, or create it if it doesn't exist |
+| `⌘ click` on an `@snippet` | Open it, or create it if it doesn't exist (also works on filled-in text in preview) |
 | `⌘ F` | Find in the current note |
 
 On Windows and Linux, use `Ctrl` in place of `⌘`.

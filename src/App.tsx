@@ -8,6 +8,7 @@ import { useWorkspace } from './app/useWorkspace'
 import { useWritingFocus } from './app/useWritingFocus'
 import { CommandPalette, type PaletteItem } from './components/CommandPalette'
 import { DeleteDialog } from './components/DeleteDialog'
+import { NotePreview } from './components/NotePreview'
 import type { IconName } from './components/Icon'
 import { SettingsPanel } from './components/SettingsPanel'
 import { SnippetHeader } from './components/SnippetHeader'
@@ -65,6 +66,7 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [deleteRequested, setDeleteRequested] = useState(false)
+  const [previewKey, setPreviewKey] = useState<string | null>(null)
   const [storagePersisted, setStoragePersisted] = useState<boolean | null>(null)
   const started = useRef(false)
 
@@ -72,6 +74,12 @@ export default function App() {
   const { openDoc, openDocRecord, text } = workspace
   const openSnippet = openDoc?.kind === 'snippet' ? snippets.find((snippet) => snippet.id === openDoc.id) : undefined
   const returnToNote = notes.find((note) => note.id === workspace.returnTo?.id)
+  const openKey = openDoc ? documentKey(openDoc) : null
+  const previewing = openKey !== null && openKey === previewKey
+
+  // Opening a different note leaves preview. Visiting a snippet and coming back keeps it.
+  if (previewKey && openDoc?.kind === 'note' && openKey !== previewKey) setPreviewKey(null)
+
   const openNote = openDoc?.kind === 'note' ? notes.find((note) => note.id === openDoc.id) : undefined
 
   useEffect(() => {
@@ -113,6 +121,21 @@ export default function App() {
     setDeleteRequested(false)
     void workspace.deleteCurrent()
   }
+
+  const togglePreview = useCallback(() => {
+    if (previewing) {
+      setPreviewKey(null)
+      requestAnimationFrame(focusEditor)
+    } else {
+      setPreviewKey(openKey)
+    }
+  }, [previewing, openKey])
+
+  const exitPreview = useCallback(() => {
+    if (paletteOpen || settingsOpen || deleteRequested) return
+    setPreviewKey(null)
+    requestAnimationFrame(focusEditor)
+  }, [paletteOpen, settingsOpen, deleteRequested])
 
   function toggleFavorite() {
     if (!openNote) return
@@ -175,6 +198,7 @@ export default function App() {
       const handlers: Record<string, () => void> = {
         KeyK: () => setPaletteOpen((isOpen) => !isOpen),
         Enter: () => void workspace.copyCurrent(),
+        KeyE: togglePreview,
         Backslash: () => setSidebar(!sidebarVisible),
         'Alt+KeyN': () => void workspace.newNote(),
       }
@@ -199,6 +223,13 @@ export default function App() {
     { id: 'new-note', label: 'New note', icon: 'plus', shortcut: `${MOD_LABEL} ⌥ N`, run: workspace.newNote },
     { id: 'new-snippet', label: 'New snippet', icon: 'at', run: workspace.newSnippet },
     { id: 'copy', label: 'Copy with snippets filled in', icon: 'copy', shortcut: `${MOD_LABEL} ↵`, run: workspace.copyCurrent },
+    {
+      id: 'preview',
+      label: previewing ? 'Back to editing' : 'Preview with snippets filled in',
+      icon: previewing ? 'pencil' : 'eye',
+      shortcut: `${MOD_LABEL} E`,
+      run: togglePreview,
+    },
     ...(openNote
       ? [{ id: 'favorite', label: openNote.favorite ? 'Remove from favorites' : 'Add to favorites', icon: 'star' as const, run: toggleFavorite }]
       : []),
@@ -252,7 +283,7 @@ export default function App() {
     `font-${settings.font}`,
     sidebarVisible ? 'has-sidebar' : 'no-sidebar',
     isNarrow ? 'is-narrow' : '',
-    isWriting && !paletteOpen && !settingsOpen && !deleteRequested ? 'is-writing' : '',
+    isWriting && !previewing && !paletteOpen && !settingsOpen && !deleteRequested ? 'is-writing' : '',
   ]
 
   return (
@@ -287,14 +318,16 @@ export default function App() {
           sidebarOpen={sidebarVisible}
           isSnippet={openSnippet !== undefined}
           returnTo={returnToNote}
+          previewing={previewing}
           favorite={openNote ? openNote.favorite === true : undefined}
           onShowSidebar={() => setSidebar(true)}
           onReturn={() => workspace.returnTo && open(workspace.returnTo)}
+          onTogglePreview={togglePreview}
           onCopy={() => void workspace.copyCurrent()}
           onDelete={requestDelete}
           onToggleFavorite={toggleFavorite}
         />
-        <div className="page" data-kind={openDoc?.kind}>
+        <div className={`page${previewing ? ' is-previewing' : ''}`} data-kind={openDoc?.kind}>
           {openSnippet && (
             <SnippetHeader
               snippet={openSnippet}
@@ -314,8 +347,18 @@ export default function App() {
               onCreateSnippet={(name) => void workspace.createSnippetInBackground(name)}
             />
           )}
+          {previewing && (
+            <NotePreview
+              text={text}
+              snippets={snippetBodies}
+              highlights={settings.previewHighlights}
+              onToggleHighlights={() => updateSettings({ previewHighlights: !settings.previewHighlights })}
+              onOpenSnippet={(name) => void workspace.openSnippetByName(name)}
+              onExit={exitPreview}
+            />
+          )}
         </div>
-        {openDocRecord && <StatusBar text={text} expandedText={expandedText} saveStatus={workspace.saveStatus} />}
+        {openDocRecord && <StatusBar text={previewing ? expandedText : text} expandedText={expandedText} saveStatus={workspace.saveStatus} />}
       </main>
 
       {paletteOpen && <CommandPalette items={paletteItems} onClose={closePalette} />}

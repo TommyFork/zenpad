@@ -7,15 +7,29 @@ interface TopBarProps {
   sidebarOpen: boolean
   isSnippet: boolean
   returnTo: Note | undefined
+  previewing: boolean
   favorite: boolean | undefined
   onShowSidebar: () => void
   onReturn: () => void
+  onTogglePreview: () => void
   onCopy: () => void
   onDelete: () => void
   onToggleFavorite: () => void
 }
 
-export function TopBar({ sidebarOpen, isSnippet, returnTo, favorite, onShowSidebar, onReturn, onCopy, onDelete, onToggleFavorite }: TopBarProps) {
+export function TopBar({
+  sidebarOpen,
+  isSnippet,
+  returnTo,
+  previewing,
+  favorite,
+  onShowSidebar,
+  onReturn,
+  onTogglePreview,
+  onCopy,
+  onDelete,
+  onToggleFavorite,
+}: TopBarProps) {
   return (
     <header className="topbar">
       <div className="topbar-start">
@@ -33,6 +47,15 @@ export function TopBar({ sidebarOpen, isSnippet, returnTo, favorite, onShowSideb
       </div>
 
       <div className="topbar-end">
+        <button
+          className={`preview-button${previewing ? ' is-active' : ''}`}
+          onClick={onTogglePreview}
+          aria-pressed={previewing}
+          title={previewing ? `Back to editing  ${MOD_LABEL} E` : `Preview with snippets filled in  ${MOD_LABEL} E`}
+        >
+          <Icon name={previewing ? 'pencil' : 'eye'} size={16} />
+          <span>{previewing ? 'Edit' : 'Preview'}</span>
+        </button>
         {favorite !== undefined && (
           <button
             className={favorite ? 'icon-button favorite-button is-favorite' : 'icon-button favorite-button'}
