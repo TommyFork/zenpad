@@ -335,6 +335,28 @@ kbd {
   }
 }
 
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.sort-button {
+  padding: 3px 7px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--faint);
+  transition: background-color 0.15s, color 0.15s;
+}
+
+@media (hover: hover) {
+  .sort-button:hover {
+    background: var(--line);
+    color: var(--ink);
+  }
+}
+
 .favorite-button.is-favorite {
   color: #c9962e;
 }
@@ -410,6 +432,8 @@ kbd {
 }
 
 .snippet-name {
+  flex: 1;
+  min-width: 0;
   font-weight: 550;
   color: var(--accent-ink);
   overflow: hidden;

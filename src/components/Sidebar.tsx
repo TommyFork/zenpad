@@ -1,15 +1,27 @@
-import type { ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { isSameDocument, type DocumentRef } from '../app/documents'
 import { MOD_LABEL } from '../app/keys'
 import { useNow } from '../app/useNow'
 import type { Note, Snippet } from '../lib/db'
 import { notePreview, noteTitle } from '../lib/notes'
 import type { SidebarSection } from '../lib/settings'
+import { countSnippetReferences, sortSnippets, type SnippetSort } from '../lib/snippets'
 import { formatRelativeTime } from '../lib/time'
 import { GitHubIcon, Icon } from './Icon'
 
 const RELATIVE_TIME_REFRESH_MS = 30_000
 const REPOSITORY_URL = 'https://github.com/TommyFork/zenpad'
+
+const SNIPPET_SORTS: { id: SnippetSort; label: string; description: string }[] = [
+  { id: 'name', label: 'A–Z', description: 'by name' },
+  { id: 'references', label: 'Most used', description: 'by most referenced' },
+  { id: 'edited', label: 'Recent', description: 'by last edited' },
+]
+
+function usageLabel(count: number): string {
+  if (count === 0) return 'unused'
+  return count === 1 ? '1 use' : `${count} uses`
+}
 
 interface SidebarProps {
   notes: Note[]
@@ -17,6 +29,8 @@ interface SidebarProps {
   openDoc: DocumentRef | null
   collapsedSections: SidebarSection[]
   onToggleSection: (section: SidebarSection) => void
+  snippetSort: SnippetSort
+  onSnippetSortChange: (sort: SnippetSort) => void
   onOpen: (doc: DocumentRef) => void
   onNewNote: () => void
   onNewSnippet: () => void
@@ -58,6 +72,8 @@ export function Sidebar({
   openDoc,
   collapsedSections,
   onToggleSection,
+  snippetSort,
+  onSnippetSortChange,
   onOpen,
   onNewNote,
   onNewSnippet,
@@ -69,6 +85,14 @@ export function Sidebar({
   const favorites = notes.filter((note) => note.favorite)
   const otherNotes = notes.filter((note) => !note.favorite)
   const isCollapsed = (section: SidebarSection) => collapsedSections.includes(section)
+  const referenceCounts = useMemo(() => countSnippetReferences(notes, snippets), [notes, snippets])
+  const sortedSnippets = useMemo(
+    () => sortSnippets(snippets, snippetSort, referenceCounts),
+    [snippets, snippetSort, referenceCounts],
+  )
+  const sortIndex = Math.max(0, SNIPPET_SORTS.findIndex((sort) => sort.id === snippetSort))
+  const currentSort = SNIPPET_SORTS[sortIndex]
+  const nextSort = SNIPPET_SORTS[(sortIndex + 1) % SNIPPET_SORTS.length]
 
   function noteList(list: Note[]) {
     return (
@@ -138,9 +162,21 @@ export function Sidebar({
           collapsed={isCollapsed('snippets')}
           onToggle={onToggleSection}
           action={
-            <button className="icon-button small" onClick={onNewSnippet} aria-label="New snippet" title="New snippet">
-              <Icon name="plus" size={16} />
-            </button>
+            <div className="section-actions">
+              {snippets.length > 1 && (
+                <button
+                  className="sort-button"
+                  onClick={() => onSnippetSortChange(nextSort.id)}
+                  aria-label={`Sorted ${currentSort.description}. Sort ${nextSort.description}`}
+                  title={`Sort ${nextSort.description}`}
+                >
+                  {currentSort.label}
+                </button>
+              )}
+              <button className="icon-button small" onClick={onNewSnippet} aria-label="New snippet" title="New snippet">
+                <Icon name="plus" size={16} />
+              </button>
+            </div>
           }
         >
           {snippets.length === 0 ? (
@@ -149,8 +185,9 @@ export function Sidebar({
             </p>
           ) : (
             <ul className="doc-list">
-              {snippets.map((snippet) => {
+              {sortedSnippets.map((snippet) => {
                 const doc: DocumentRef = { kind: 'snippet', id: snippet.id }
+                const uses = referenceCounts.get(snippet.name) ?? 0
                 return (
                   <li key={snippet.id}>
                     <button
@@ -158,7 +195,13 @@ export function Sidebar({
                       aria-current={isSameDocument(openDoc, doc) ? 'page' : undefined}
                       onClick={() => onOpen(doc)}
                     >
-                      <span className="snippet-name">@{snippet.name}</span>
+                      <span className="doc-item-row">
+                        <span className="snippet-name">@{snippet.name}</span>
+                        {snippetSort === 'references' && <span className="doc-time">{usageLabel(uses)}</span>}
+                        {snippetSort === 'edited' && (
+                          <time className="doc-time">{formatRelativeTime(snippet.updatedAt, now)}</time>
+                        )}
+                      </span>
                     </button>
                   </li>
                 )

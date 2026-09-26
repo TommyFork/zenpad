@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  countSnippetReferences,
   describeExpansion,
   expandSnippetParts,
   expandSnippets,
@@ -7,6 +8,7 @@ import {
   isValidSnippetName,
   referencedSnippetNames,
   renameSnippetReferences,
+  sortSnippets,
   toSnippetName,
 } from './snippets'
 
@@ -127,5 +129,59 @@ describe('describeExpansion', () => {
     expect(describeExpansion('@tone @blank @nope @nada', library)).toBe(
       "Copied with 1 snippet filled in. @blank is empty. @nope and @nada aren't snippets yet.",
     )
+  })
+})
+
+describe('countSnippetReferences', () => {
+  const notes = [{ body: '@tone and @tone again, plus @context' }, { body: 'Just @tone' }, { body: 'No snippets' }]
+  const snippets = [
+    { name: 'tone', body: 'Be concise. @tone' },
+    { name: 'context', body: 'Repo: zenpad. @tone' },
+  ]
+
+  it('counts each note and snippet that mentions a snippet once', () => {
+    const counts = countSnippetReferences(notes, snippets)
+    expect(counts.get('tone')).toBe(3)
+    expect(counts.get('context')).toBe(1)
+  })
+
+  it('ignores a snippet mentioning itself', () => {
+    expect(countSnippetReferences([], snippets).get('tone')).toBe(1)
+  })
+
+  it('leaves unmentioned snippets out', () => {
+    expect(countSnippetReferences([{ body: '@tone' }], []).has('context')).toBe(false)
+  })
+})
+
+describe('sortSnippets', () => {
+  const snippets = [
+    { name: 'beta', updatedAt: 300 },
+    { name: 'alpha', updatedAt: 100 },
+    { name: 'gamma', updatedAt: 200 },
+    { name: 'delta', updatedAt: 200 },
+  ]
+  const counts = new Map([
+    ['gamma', 5],
+    ['alpha', 2],
+    ['delta', 2],
+  ])
+  const names = (list: { name: string }[]) => list.map((snippet) => snippet.name)
+
+  it('sorts by name', () => {
+    expect(names(sortSnippets(snippets, 'name', counts))).toEqual(['alpha', 'beta', 'delta', 'gamma'])
+  })
+
+  it('sorts by most referenced, breaking ties by name', () => {
+    expect(names(sortSnippets(snippets, 'references', counts))).toEqual(['gamma', 'alpha', 'delta', 'beta'])
+  })
+
+  it('sorts by last edited, breaking ties by name', () => {
+    expect(names(sortSnippets(snippets, 'edited', counts))).toEqual(['beta', 'delta', 'gamma', 'alpha'])
+  })
+
+  it('does not change the original list', () => {
+    sortSnippets(snippets, 'name', counts)
+    expect(names(snippets)).toEqual(['beta', 'alpha', 'gamma', 'delta'])
   })
 })

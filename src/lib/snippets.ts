@@ -85,3 +85,36 @@ export function describeExpansion(text: string, bodies: ReadonlyMap<string, stri
   if (missing.length > 0) parts.push(`${listNames(missing)} ${missing.length === 1 ? "isn't a snippet" : "aren't snippets"} yet.`)
   return parts.join(' ')
 }
+
+export type SnippetSort = 'name' | 'references' | 'edited'
+
+// How many notes and other snippets mention each snippet. A document that mentions a snippet twice counts once.
+export function countSnippetReferences(
+  notes: readonly { body: string }[],
+  snippets: readonly { name: string; body: string }[],
+): Map<string, number> {
+  const counts = new Map<string, number>()
+  const tally = (body: string, self?: string) => {
+    for (const name of referencedSnippetNames(body)) {
+      if (name !== self) counts.set(name, (counts.get(name) ?? 0) + 1)
+    }
+  }
+  for (const note of notes) tally(note.body)
+  for (const snippet of snippets) tally(snippet.body, snippet.name)
+  return counts
+}
+
+// Returns a sorted copy. Ties fall back to name order so the list never shuffles.
+export function sortSnippets<T extends { name: string; updatedAt: number }>(
+  snippets: readonly T[],
+  sort: SnippetSort,
+  referenceCounts: ReadonlyMap<string, number>,
+): T[] {
+  const byName = (a: T, b: T) => a.name.localeCompare(b.name)
+  const sorted = [...snippets]
+  if (sort === 'references') {
+    return sorted.sort((a, b) => (referenceCounts.get(b.name) ?? 0) - (referenceCounts.get(a.name) ?? 0) || byName(a, b))
+  }
+  if (sort === 'edited') return sorted.sort((a, b) => b.updatedAt - a.updatedAt || byName(a, b))
+  return sorted.sort(byName)
+}

@@ -297,6 +297,8 @@ export default function App() {
             openDoc={openDoc}
             collapsedSections={settings.collapsedSections}
             onToggleSection={toggleSection}
+            snippetSort={settings.snippetSort}
+            onSnippetSortChange={(snippetSort) => updateSettings({ snippetSort })}
             onOpen={open}
             onNewNote={() => {
               if (isNarrow) setDrawerOpen(false)

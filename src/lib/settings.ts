@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import type { SnippetSort } from './snippets'
 
 export type Theme = 'system' | 'light' | 'dark'
 export type EditorFont = 'serif' | 'sans' | 'mono'
@@ -11,11 +12,12 @@ export interface Settings {
   // Tints the text each snippet filled in when previewing a note.
   previewHighlights: boolean
   collapsedSections: SidebarSection[]
+  snippetSort: SnippetSort
 }
 
 const STORAGE_KEY = 'zenpad.settings'
 
-const DEFAULT_SETTINGS: Settings = { theme: 'system', font: 'serif', sidebarOpen: true, previewHighlights: true, collapsedSections: [] }
+const DEFAULT_SETTINGS: Settings = { theme: 'system', font: 'serif', sidebarOpen: true, previewHighlights: true, collapsedSections: [], snippetSort: 'name' }
 
 function readSettings(): Settings {
   try {
