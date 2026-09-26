@@ -293,6 +293,52 @@ kbd {
   color: var(--muted);
 }
 
+.section-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: -15px;
+  padding: 3px 6px 3px 0;
+  border-radius: 6px;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  transition: color 0.15s;
+}
+
+@media (hover: hover) {
+  .section-toggle:hover {
+    color: var(--ink);
+  }
+}
+
+.section-toggle svg {
+  transform: rotate(90deg);
+  opacity: 0;
+  transition: transform 0.2s var(--ease), opacity 0.15s;
+}
+
+.section-toggle:focus-visible svg,
+.is-narrow .section-toggle svg,
+.is-collapsed .section-toggle svg {
+  opacity: 1;
+}
+
+.is-collapsed .section-toggle svg {
+  transform: none;
+}
+
+@media (hover: hover) {
+  .sidebar-section:hover .section-toggle svg {
+    opacity: 1;
+  }
+}
+
+.favorite-button.is-favorite {
+  color: #c9962e;
+}
+
 .doc-list {
   list-style: none;
   margin: 0;

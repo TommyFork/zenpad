@@ -14,6 +14,11 @@ export async function saveNoteBody(id: string, body: string): Promise<void> {
   await db.notes.update(id, { body, updatedAt: Date.now() })
 }
 
+// Favoriting leaves updatedAt alone so the note keeps its place in the list.
+export async function setNoteFavorite(id: string, favorite: boolean): Promise<void> {
+  await db.notes.update(id, { favorite })
+}
+
 export async function saveSnippetBody(id: string, body: string): Promise<void> {
   await db.snippets.update(id, { body, updatedAt: Date.now() })
 }

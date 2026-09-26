@@ -8,14 +8,28 @@ interface TopBarProps {
   isSnippet: boolean
   returnTo: Note | undefined
   previewing: boolean
+  favorite: boolean | undefined
   onShowSidebar: () => void
   onReturn: () => void
   onTogglePreview: () => void
   onCopy: () => void
   onDelete: () => void
+  onToggleFavorite: () => void
 }
 
-export function TopBar({ sidebarOpen, isSnippet, returnTo, previewing, onShowSidebar, onReturn, onTogglePreview, onCopy, onDelete }: TopBarProps) {
+export function TopBar({
+  sidebarOpen,
+  isSnippet,
+  returnTo,
+  previewing,
+  favorite,
+  onShowSidebar,
+  onReturn,
+  onTogglePreview,
+  onCopy,
+  onDelete,
+  onToggleFavorite,
+}: TopBarProps) {
   return (
     <header className="topbar">
       <div className="topbar-start">
@@ -42,6 +56,17 @@ export function TopBar({ sidebarOpen, isSnippet, returnTo, previewing, onShowSid
           <Icon name={previewing ? 'pencil' : 'eye'} size={16} />
           <span>{previewing ? 'Edit' : 'Preview'}</span>
         </button>
+        {favorite !== undefined && (
+          <button
+            className={favorite ? 'icon-button favorite-button is-favorite' : 'icon-button favorite-button'}
+            onClick={onToggleFavorite}
+            aria-pressed={favorite}
+            aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
+            title={favorite ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            <Icon name="star" filled={favorite} />
+          </button>
+        )}
         <button className="icon-button" onClick={onDelete} aria-label={isSnippet ? 'Delete snippet' : 'Delete note'} title="Delete">
           <Icon name="trash" />
         </button>

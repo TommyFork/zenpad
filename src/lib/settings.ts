@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 
 export type Theme = 'system' | 'light' | 'dark'
 export type EditorFont = 'serif' | 'sans' | 'mono'
+export type SidebarSection = 'favorites' | 'notes' | 'snippets'
 
 export interface Settings {
   theme: Theme
@@ -9,11 +10,12 @@ export interface Settings {
   sidebarOpen: boolean
   // Tints the text each snippet filled in when previewing a note.
   previewHighlights: boolean
+  collapsedSections: SidebarSection[]
 }
 
 const STORAGE_KEY = 'zenpad.settings'
 
-const DEFAULT_SETTINGS: Settings = { theme: 'system', font: 'serif', sidebarOpen: true, previewHighlights: true }
+const DEFAULT_SETTINGS: Settings = { theme: 'system', font: 'serif', sidebarOpen: true, previewHighlights: true, collapsedSections: [] }
 
 function readSettings(): Settings {
   try {
