@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   describeExpansion,
+  expandSnippetParts,
   expandSnippets,
+  type ExpansionPart,
   isValidSnippetName,
   referencedSnippetNames,
   renameSnippetReferences,
@@ -43,6 +45,41 @@ describe('expandSnippets', () => {
 
   it('does not treat a trailing dash as part of the name', () => {
     expect(expandSnippets('@tone- next', bodies)).toBe('Be concise.- next')
+  })
+})
+
+describe('expandSnippetParts', () => {
+  function flatten(parts: ExpansionPart[]): string {
+    return parts
+      .map((part) => (part.kind === 'text' ? part.text : part.kind === 'snippet' ? flatten(part.parts) : `@${part.name}`))
+      .join('')
+  }
+
+  it('produces the same text as expandSnippets', () => {
+    for (const text of ['Hi. @tone', '@context', 'Ask @nobody', '@loop-a', 'mail me@tone.com', '(@tone) @tone-']) {
+      expect(flatten(expandSnippetParts(text, bodies))).toBe(expandSnippets(text, bodies))
+    }
+  })
+
+  it('nests snippets inside the snippets that use them', () => {
+    expect(expandSnippetParts('Go: @context', bodies)).toEqual([
+      { kind: 'text', text: 'Go: ' },
+      {
+        kind: 'snippet',
+        name: 'context',
+        parts: [
+          { kind: 'text', text: 'Repo: zenpad. ' },
+          { kind: 'snippet', name: 'tone', parts: [{ kind: 'text', text: 'Be concise.' }] },
+        ],
+      },
+    ])
+  })
+
+  it('marks unknown snippets and loops as unresolved', () => {
+    expect(expandSnippetParts('@nobody', bodies)).toEqual([{ kind: 'unresolved', name: 'nobody', reason: 'missing' }])
+    const loop = expandSnippetParts('@loop-a', bodies)
+    const inner = loop[0].kind === 'snippet' && loop[0].parts[1].kind === 'snippet' ? loop[0].parts[1].parts : []
+    expect(inner.at(-1)).toEqual({ kind: 'unresolved', name: 'loop-a', reason: 'loop' })
   })
 })
 

@@ -7,11 +7,13 @@ export interface Settings {
   theme: Theme
   font: EditorFont
   sidebarOpen: boolean
+  // Tints the text each snippet filled in when previewing a note.
+  previewHighlights: boolean
 }
 
 const STORAGE_KEY = 'zenpad.settings'
 
-const DEFAULT_SETTINGS: Settings = { theme: 'system', font: 'serif', sidebarOpen: true }
+const DEFAULT_SETTINGS: Settings = { theme: 'system', font: 'serif', sidebarOpen: true, previewHighlights: true }
 
 function readSettings(): Settings {
   try {
