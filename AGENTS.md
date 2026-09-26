@@ -6,7 +6,7 @@ Guidance for AI coding agents (Claude Code, Codex, Cursor, and others) working i
 
 Zenpad is a calm, local-first writing app with reusable `@snippets`. It is a static single-page app: no server, no accounts, no network requests. Data lives in the browser's IndexedDB via Dexie. It is deployed to Cloudflare Pages (https://zenpad.pages.dev) from `main`.
 
-Stack: Vite, React 19, TypeScript, CodeMirror 6, Dexie, Vitest, oxlint.
+Stack: Vite, React 19, TypeScript, CodeMirror 6, Dexie, Vitest, Playwright, oxlint.
 
 ```
 src/
@@ -28,9 +28,10 @@ npm run typecheck  # TypeScript (tsc -b)
 npm run lint       # oxlint
 npm test           # unit tests (Vitest)
 npm run build      # production build in dist/
+npm run test:e2e   # Playwright smoke tests of the production build (run after npm run build)
 ```
 
-Before opening a PR, run `npm run typecheck`, `npm run lint`, `npm test`, and `npm run build`. CI runs the same checks on every pull request.
+Before opening a PR, run `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, and `npm run test:e2e`. CI runs the same checks on every pull request, and also fails on lint warnings.
 
 ## Conventions
 

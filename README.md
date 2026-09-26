@@ -62,6 +62,7 @@ Requires Node 20.19 or newer.
 npm install
 npm run dev        # start the dev server
 npm test           # unit tests (Vitest)
+npm run test:e2e   # browser smoke tests of the production build (Playwright, run `npm run build` first)
 npm run typecheck  # TypeScript
 npm run lint       # oxlint
 npm run build      # production build in dist/
@@ -72,7 +73,14 @@ npm run preview    # serve the production build
 
 Zenpad is hosted on Cloudflare Pages at https://zenpad.pages.dev, configured in `wrangler.jsonc`. The build also writes a `_headers` file, so Cloudflare sends the security policy as a real HTTP header.
 
-GitHub Actions (`.github/workflows/ci.yml`) runs the type check, lint, tests, and build on every pull request and push. Pushes to `main` then deploy with `wrangler pages deploy`. Each pull request from a branch in this repo also gets a preview deploy at `https://pr-<number>.zenpad.pages.dev`, which updates on every push and is linked in a comment on the PR. Pull requests from forks skip the preview, since they can't read the repo's secrets. Deploys need two settings on the GitHub repo:
+GitHub Actions (`.github/workflows/ci.yml`) runs on every pull request and push:
+
+- **check**: type check, lint (warnings fail the build), unit tests, and `npm audit` of production dependencies.
+- **node-compat**: unit tests and build on Node 20.19 and 22, the oldest versions `package.json` supports.
+- **build**: the production build, then Playwright smoke tests that load it in Chromium and fail on any console error or CSP violation, check that notes survive a reload, and check that the app loads offline.
+- **preview**: each pull request from a branch in this repo gets a preview deploy at `https://pr-<number>.zenpad.pages.dev`, which updates on every push and is linked in a comment on the PR. Pull requests from forks skip the preview, since they can't read the repo's secrets.
+
+Pushes to `main` then deploy with `wrangler pages deploy`. Previews and production both deploy the exact `dist/` the smoke tests ran against. Dependabot (`.github/dependabot.yml`) opens weekly update PRs for npm packages and GitHub Actions. Deploys need two settings on the GitHub repo:
 
 - `CLOUDFLARE_API_TOKEN` (secret): a Cloudflare API token with the "Cloudflare Pages: Edit" account permission.
 - `CLOUDFLARE_ACCOUNT_ID` (variable): your Cloudflare account ID.
