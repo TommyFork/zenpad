@@ -36,7 +36,7 @@ function toNote(value: unknown, index: number): Note {
     throw new BackupError(`Note #${index + 1} is malformed.`)
   }
   const { id, body, createdAt, updatedAt } = value as unknown as Note
-  return { id, body, createdAt, updatedAt }
+  return value.favorite === true ? { id, body, createdAt, updatedAt, favorite: true } : { id, body, createdAt, updatedAt }
 }
 
 function toSnippet(value: unknown, index: number): Snippet {

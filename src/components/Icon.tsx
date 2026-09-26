@@ -16,6 +16,8 @@ const PATHS = {
   moon: 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z',
   type: 'M5 7V5h14v2M12 5v14M9 19h6',
   close: 'M6 6l12 12M18 6 6 18',
+  star: 'M12 3.8l2.5 5.1 5.6.8-4 4 .9 5.6-5-2.7-5 2.7.9-5.6-4-4 5.6-.8z',
+  chevron: 'M9 6l6 6-6 6',
 } as const
 
 // The GitHub mark is a filled shape, unlike the stroked icons above.
@@ -32,13 +34,13 @@ export function GitHubIcon({ size = 18 }: { size?: number }) {
 
 export type IconName = keyof typeof PATHS
 
-export function Icon({ name, size = 18 }: { name: IconName; size?: number }) {
+export function Icon({ name, size = 18, filled = false }: { name: IconName; size?: number; filled?: boolean }) {
   return (
     <svg
       width={size}
       height={size}
       viewBox="0 0 24 24"
-      fill="none"
+      fill={filled ? 'currentColor' : 'none'}
       stroke="currentColor"
       strokeWidth={1.6}
       strokeLinecap="round"

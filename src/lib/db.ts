@@ -5,6 +5,7 @@ export interface Note {
   body: string
   createdAt: number
   updatedAt: number
+  favorite?: boolean
 }
 
 export interface Snippet {

@@ -7,13 +7,15 @@ interface TopBarProps {
   sidebarOpen: boolean
   isSnippet: boolean
   returnTo: Note | undefined
+  favorite: boolean | undefined
   onShowSidebar: () => void
   onReturn: () => void
   onCopy: () => void
   onDelete: () => void
+  onToggleFavorite: () => void
 }
 
-export function TopBar({ sidebarOpen, isSnippet, returnTo, onShowSidebar, onReturn, onCopy, onDelete }: TopBarProps) {
+export function TopBar({ sidebarOpen, isSnippet, returnTo, favorite, onShowSidebar, onReturn, onCopy, onDelete, onToggleFavorite }: TopBarProps) {
   return (
     <header className="topbar">
       <div className="topbar-start">
@@ -31,6 +33,17 @@ export function TopBar({ sidebarOpen, isSnippet, returnTo, onShowSidebar, onRetu
       </div>
 
       <div className="topbar-end">
+        {favorite !== undefined && (
+          <button
+            className={favorite ? 'icon-button favorite-button is-favorite' : 'icon-button favorite-button'}
+            onClick={onToggleFavorite}
+            aria-pressed={favorite}
+            aria-label={favorite ? 'Remove from favorites' : 'Add to favorites'}
+            title={favorite ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            <Icon name="star" filled={favorite} />
+          </button>
+        )}
         <button className="icon-button" onClick={onDelete} aria-label={isSnippet ? 'Delete snippet' : 'Delete note'} title="Delete">
           <Icon name="trash" />
         </button>
