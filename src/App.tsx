@@ -19,9 +19,9 @@ import { Editor } from './editor/Editor'
 import { BackupError } from './lib/backup'
 import { downloadJson, pickFile } from './lib/files'
 import type { Snippet } from './lib/db'
-import { exportLibrary, importLibrary, requestPersistentStorage, seedOnFirstLaunch } from './lib/library'
+import { exportLibrary, importLibrary, requestPersistentStorage, seedOnFirstLaunch, setNoteFavorite } from './lib/library'
 import { notePreview, noteTitle } from './lib/notes'
-import { useSettings, type EditorFont, type Theme } from './lib/settings'
+import { useSettings, type EditorFont, type SidebarSection, type Theme } from './lib/settings'
 import { expandSnippets, referencedSnippetNames } from './lib/snippets'
 
 const NARROW_SCREEN = '(max-width: 760px)'
@@ -72,6 +72,7 @@ export default function App() {
   const { openDoc, openDocRecord, text } = workspace
   const openSnippet = openDoc?.kind === 'snippet' ? snippets.find((snippet) => snippet.id === openDoc.id) : undefined
   const returnToNote = notes.find((note) => note.id === workspace.returnTo?.id)
+  const openNote = openDoc?.kind === 'note' ? notes.find((note) => note.id === openDoc.id) : undefined
 
   useEffect(() => {
     if (started.current) return
@@ -111,6 +112,22 @@ export default function App() {
   function confirmDelete() {
     setDeleteRequested(false)
     void workspace.deleteCurrent()
+  }
+
+  function toggleFavorite() {
+    if (!openNote) return
+    const favorite = !openNote.favorite
+    setNoteFavorite(openNote.id, favorite).then(
+      () => showToast(favorite ? 'Added to favorites.' : 'Removed from favorites.'),
+      (error: unknown) => showToast(`Couldn't update favorites: ${String(error)}`),
+    )
+  }
+
+  function toggleSection(section: SidebarSection) {
+    const collapsed = settings.collapsedSections
+    updateSettings({
+      collapsedSections: collapsed.includes(section) ? collapsed.filter((name) => name !== section) : [...collapsed, section],
+    })
   }
 
   const closeSettings = useCallback(() => {
@@ -182,6 +199,9 @@ export default function App() {
     { id: 'new-note', label: 'New note', icon: 'plus', shortcut: `${MOD_LABEL} ⌥ N`, run: workspace.newNote },
     { id: 'new-snippet', label: 'New snippet', icon: 'at', run: workspace.newSnippet },
     { id: 'copy', label: 'Copy with snippets filled in', icon: 'copy', shortcut: `${MOD_LABEL} ↵`, run: workspace.copyCurrent },
+    ...(openNote
+      ? [{ id: 'favorite', label: openNote.favorite ? 'Remove from favorites' : 'Add to favorites', icon: 'star' as const, run: toggleFavorite }]
+      : []),
     { id: 'sidebar', label: sidebarVisible ? 'Hide sidebar' : 'Show sidebar', icon: 'sidebar', shortcut: `${MOD_LABEL} \\`, run: () => setSidebar(!sidebarVisible) },
     { id: 'theme-light', label: 'Theme: Light', icon: 'sun', run: () => setTheme('light') },
     { id: 'theme-dark', label: 'Theme: Dark', icon: 'moon', run: () => setTheme('dark') },
@@ -244,6 +264,8 @@ export default function App() {
             notes={notes}
             snippets={snippets}
             openDoc={openDoc}
+            collapsedSections={settings.collapsedSections}
+            onToggleSection={toggleSection}
             onOpen={open}
             onNewNote={() => {
               if (isNarrow) setDrawerOpen(false)
@@ -265,10 +287,12 @@ export default function App() {
           sidebarOpen={sidebarVisible}
           isSnippet={openSnippet !== undefined}
           returnTo={returnToNote}
+          favorite={openNote ? openNote.favorite === true : undefined}
           onShowSidebar={() => setSidebar(true)}
           onReturn={() => workspace.returnTo && open(workspace.returnTo)}
           onCopy={() => void workspace.copyCurrent()}
           onDelete={requestDelete}
+          onToggleFavorite={toggleFavorite}
         />
         <div className="page" data-kind={openDoc?.kind}>
           {openSnippet && (

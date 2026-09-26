@@ -16,6 +16,11 @@ describe('parseBackup', () => {
     expect(parseBackup(JSON.stringify(backup))).toEqual(backup)
   })
 
+  it('keeps favorites', () => {
+    const backup = createBackup([{ ...note('n1', 1), favorite: true }, note('n2', 1)], [], 42)
+    expect(parseBackup(JSON.stringify(backup)).notes).toEqual(backup.notes)
+  })
+
   it('rejects files that are not JSON', () => {
     expect(() => parseBackup('not json')).toThrow(BackupError)
   })

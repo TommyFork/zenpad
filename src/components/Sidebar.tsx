@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react'
 import { isSameDocument, type DocumentRef } from '../app/documents'
 import { MOD_LABEL } from '../app/keys'
 import { useNow } from '../app/useNow'
 import type { Note, Snippet } from '../lib/db'
 import { notePreview, noteTitle } from '../lib/notes'
+import type { SidebarSection } from '../lib/settings'
 import { formatRelativeTime } from '../lib/time'
 import { GitHubIcon, Icon } from './Icon'
 
@@ -13,6 +15,8 @@ interface SidebarProps {
   notes: Note[]
   snippets: Snippet[]
   openDoc: DocumentRef | null
+  collapsedSections: SidebarSection[]
+  onToggleSection: (section: SidebarSection) => void
   onOpen: (doc: DocumentRef) => void
   onNewNote: () => void
   onNewSnippet: () => void
@@ -21,8 +25,77 @@ interface SidebarProps {
   onClose: () => void
 }
 
-export function Sidebar({ notes, snippets, openDoc, onOpen, onNewNote, onNewSnippet, onSearch, onSettings, onClose }: SidebarProps) {
+interface SectionProps {
+  id: SidebarSection
+  title: string
+  collapsed: boolean
+  onToggle: (section: SidebarSection) => void
+  action?: ReactNode
+  children: ReactNode
+}
+
+function Section({ id, title, collapsed, onToggle, action, children }: SectionProps) {
+  const bodyId = `sidebar-section-${id}`
+  return (
+    <section className={collapsed ? 'sidebar-section is-collapsed' : 'sidebar-section'}>
+      <div className="section-head">
+        <h2>
+          <button className="section-toggle" aria-expanded={!collapsed} aria-controls={bodyId} onClick={() => onToggle(id)}>
+            <Icon name="chevron" size={12} />
+            <span>{title}</span>
+          </button>
+        </h2>
+        {action}
+      </div>
+      {!collapsed && <div id={bodyId}>{children}</div>}
+    </section>
+  )
+}
+
+export function Sidebar({
+  notes,
+  snippets,
+  openDoc,
+  collapsedSections,
+  onToggleSection,
+  onOpen,
+  onNewNote,
+  onNewSnippet,
+  onSearch,
+  onSettings,
+  onClose,
+}: SidebarProps) {
   const now = useNow(RELATIVE_TIME_REFRESH_MS)
+  const favorites = notes.filter((note) => note.favorite)
+  const otherNotes = notes.filter((note) => !note.favorite)
+  const isCollapsed = (section: SidebarSection) => collapsedSections.includes(section)
+
+  function noteList(list: Note[]) {
+    return (
+      <ul className="doc-list">
+        {list.map((note) => {
+          const doc: DocumentRef = { kind: 'note', id: note.id }
+          const preview = notePreview(note.body)
+          return (
+            <li key={note.id}>
+              <button
+                className="doc-item"
+                aria-current={isSameDocument(openDoc, doc) ? 'page' : undefined}
+                onClick={() => onOpen(doc)}
+              >
+                <span className="doc-item-row">
+                  <span className={note.body.trim() ? 'doc-title' : 'doc-title is-empty'}>{noteTitle(note.body)}</span>
+                  <time className="doc-time">{formatRelativeTime(note.updatedAt, now)}</time>
+                </span>
+                {preview && <span className="doc-preview">{preview}</span>}
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    )
+  }
+
   return (
     <aside className="sidebar" aria-label="Library">
       <div className="sidebar-head">
@@ -39,43 +112,37 @@ export function Sidebar({ notes, snippets, openDoc, onOpen, onNewNote, onNewSnip
       </button>
 
       <div className="sidebar-scroll">
-        <section className="sidebar-section">
-          <div className="section-head">
-            <h2>Notes</h2>
+        {favorites.length > 0 && (
+          <Section id="favorites" title="Favorites" collapsed={isCollapsed('favorites')} onToggle={onToggleSection}>
+            {noteList(favorites)}
+          </Section>
+        )}
+
+        <Section
+          id="notes"
+          title="Notes"
+          collapsed={isCollapsed('notes')}
+          onToggle={onToggleSection}
+          action={
             <button className="icon-button small" onClick={onNewNote} aria-label="New note" title="New note">
               <Icon name="plus" size={16} />
             </button>
-          </div>
-          <ul className="doc-list">
-            {notes.map((note) => {
-              const doc: DocumentRef = { kind: 'note', id: note.id }
-              const preview = notePreview(note.body)
-              return (
-                <li key={note.id}>
-                  <button
-                    className="doc-item"
-                    aria-current={isSameDocument(openDoc, doc) ? 'page' : undefined}
-                    onClick={() => onOpen(doc)}
-                  >
-                    <span className="doc-item-row">
-                      <span className={note.body.trim() ? 'doc-title' : 'doc-title is-empty'}>{noteTitle(note.body)}</span>
-                      <time className="doc-time">{formatRelativeTime(note.updatedAt, now)}</time>
-                    </span>
-                    {preview && <span className="doc-preview">{preview}</span>}
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        </section>
+          }
+        >
+          {otherNotes.length === 0 ? <p className="section-empty">Every note is in Favorites.</p> : noteList(otherNotes)}
+        </Section>
 
-        <section className="sidebar-section">
-          <div className="section-head">
-            <h2>Snippets</h2>
+        <Section
+          id="snippets"
+          title="Snippets"
+          collapsed={isCollapsed('snippets')}
+          onToggle={onToggleSection}
+          action={
             <button className="icon-button small" onClick={onNewSnippet} aria-label="New snippet" title="New snippet">
               <Icon name="plus" size={16} />
             </button>
-          </div>
+          }
+        >
           {snippets.length === 0 ? (
             <p className="section-empty">
               Save text you reuse, then type <span className="inline-chip">@name</span> in any note to drop it in.
@@ -98,7 +165,7 @@ export function Sidebar({ notes, snippets, openDoc, onOpen, onNewNote, onNewSnip
               })}
             </ul>
           )}
-        </section>
+        </Section>
       </div>
 
       <div className="sidebar-foot">

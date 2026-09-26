@@ -9,6 +9,7 @@ Zenpad was built for writing AI prompts, but it works for any writing where you 
 - **Focused writing.** A single centered page in a warm serif. The top bar and status bar fade away while you type and come back when you move the mouse.
 - **@snippets.** Type `@` to insert a saved snippet. Snippets stay linked: edit one and every note that uses it picks up the change.
 - **Copy with snippets filled in.** `⌘ Enter` copies the note with every `@snippet` replaced by its full text. Snippets can contain other snippets, and loops are detected.
+- **Favorites.** Star a note to pin it to a Favorites section at the top of the sidebar. The Favorites, Notes, and Snippets sections each collapse, and Zenpad remembers which ones you closed.
 - **Search and commands.** `⌘ K` searches every note and snippet and runs every command.
 - **Private by design.** No server, no accounts, no analytics. Notes live in your browser's IndexedDB.
 - **Works offline.** Installable as an app (PWA) that loads with no network.
