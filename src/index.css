@@ -594,9 +594,12 @@ kbd {
   transition: background-color 0.15s, color 0.15s;
 }
 
-.preview-button:hover {
-  background: var(--line);
-  color: var(--ink);
+/* Touch screens keep :hover after a tap, which would leave the button looking active. */
+@media (hover: hover) {
+  .preview-button:hover {
+    background: var(--line);
+    color: var(--ink);
+  }
 }
 
 .preview-button.is-active {
@@ -664,8 +667,10 @@ kbd {
   transition: color 0.15s;
 }
 
-.preview-toggle:hover {
-  color: var(--ink);
+@media (hover: hover) {
+  .preview-toggle:hover {
+    color: var(--ink);
+  }
 }
 
 .preview-toggle-track {
