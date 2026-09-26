@@ -64,6 +64,11 @@ export function referencedSnippetNames(text: string): string[] {
   return [...new Set(names)]
 }
 
+// Keeps a name field to the characters a snippet name can use while the user types.
+export function typedSnippetName(input: string): string {
+  return input.toLowerCase().replace(/\s/g, '-').replace(/[^a-z0-9_-]/g, '')
+}
+
 export function renameSnippetReferences(text: string, from: string, to: string): string {
   return text.replace(snippetTokenPattern(), (token, name: string) => (name === from ? `@${to}` : token))
 }
@@ -117,4 +122,110 @@ export function sortSnippets<T extends { name: string; updatedAt: number }>(
   }
   if (sort === 'edited') return sorted.sort((a, b) => b.updatedAt - a.updatedAt || byName(a, b))
   return sorted.sort(byName)
+}
+
+// A snippet used only inside one other snippet, and by no notes, is a building block of that snippet.
+// It nests under it in the sidebar. Once anything else uses it, it goes back to the top level.
+export function snippetParents(
+  notes: readonly { body: string }[],
+  snippets: readonly { name: string; body: string }[],
+): Map<string, string> {
+  const usedByNote = new Set(notes.flatMap((note) => referencedSnippetNames(note.body)))
+  const usedBy = new Map<string, string[]>()
+  for (const snippet of snippets) {
+    for (const name of referencedSnippetNames(snippet.body)) {
+      if (name !== snippet.name) usedBy.set(name, [...(usedBy.get(name) ?? []), snippet.name])
+    }
+  }
+  const exists = new Set(snippets.map((snippet) => snippet.name))
+  const parents = new Map<string, string>()
+  for (const [name, users] of usedBy) {
+    if (exists.has(name) && users.length === 1 && !usedByNote.has(name)) parents.set(name, users[0])
+  }
+
+  // Snippets that only use each other form a loop with no way in from the top.
+  // Lift one member of each loop to the top level, taking the first by name so the choice is stable.
+  const reachable = new Set<string>()
+  const children = new Map<string, string[]>()
+  for (const [child, parent] of parents) children.set(parent, [...(children.get(parent) ?? []), child])
+  const visit = (name: string) => {
+    if (reachable.has(name)) return
+    reachable.add(name)
+    for (const child of children.get(name) ?? []) visit(child)
+  }
+  for (const name of [...exists].sort()) if (!parents.has(name)) visit(name)
+  for (const name of [...exists].sort()) {
+    if (reachable.has(name)) continue
+    parents.delete(name)
+    visit(name)
+  }
+  return parents
+}
+
+export interface SnippetNode<T> {
+  snippet: T
+  children: SnippetNode<T>[]
+}
+
+export function buildSnippetTree<T extends { name: string; updatedAt: number }>(
+  snippets: readonly T[],
+  parents: ReadonlyMap<string, string>,
+  sort: SnippetSort,
+  referenceCounts: ReadonlyMap<string, number>,
+): SnippetNode<T>[] {
+  const sorted = sortSnippets(snippets, sort, referenceCounts)
+  const nodes = new Map(sorted.map((snippet) => [snippet.name, { snippet, children: [] as SnippetNode<T>[] }]))
+  const roots: SnippetNode<T>[] = []
+  for (const node of nodes.values()) {
+    const parent = nodes.get(parents.get(node.snippet.name) ?? '')
+    if (parent) parent.children.push(node)
+    else roots.push(node)
+  }
+  return roots
+}
+
+// The names of the snippets a snippet is nested inside, innermost first.
+export function snippetAncestors(name: string, parents: ReadonlyMap<string, string>): string[] {
+  const ancestors: string[] = []
+  for (let parent = parents.get(name); parent && !ancestors.includes(parent); parent = parents.get(parent)) {
+    ancestors.push(parent)
+  }
+  return ancestors
+}
+
+const MAX_SUGGESTED_NAME_LENGTH = 32
+
+// Suggests a name for a new snippet from the first few words of its text.
+export function suggestSnippetName(text: string): string {
+  const words = toSnippetName(text.replace(/@/g, ' ').split(/\s+/).filter(Boolean).slice(0, 4).join(' '))
+  const name = words.slice(0, MAX_SUGGESTED_NAME_LENGTH).replace(/[_-]+$/, '')
+  return isValidSnippetName(name) ? name : 'snippet'
+}
+
+export interface Extraction {
+  // The text the new snippet holds.
+  body: string
+  // What replaces the selection, so the reference still reads as a reference.
+  insert: string
+}
+
+// Moves selected text into a snippet. Whitespace at the edges of the selection stays where it was,
+// and a space is added where the reference would otherwise run into the surrounding text.
+export function extractToSnippet(selected: string, name: string, before: string, after: string): Extraction {
+  const lead = selected.match(/^\s*/)?.[0] ?? ''
+  const trail = selected.slice(lead.length).match(/\s*$/)?.[0] ?? ''
+  const body = selected.slice(lead.length, selected.length - trail.length)
+  const spaceBefore = lead === '' && /[\w@]$/.test(before) ? ' ' : ''
+  const spaceAfter = trail === '' && /^[a-z0-9_-]/.test(after) ? ' ' : ''
+  return { body, insert: `${lead}${spaceBefore}@${name}${spaceAfter}${trail}` }
+}
+
+function plural(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? '' : 's'}`
+}
+
+// "2 notes and 1 snippet", or an empty string when nothing uses it.
+export function describeUses(noteUses: number, snippetUses: number): string {
+  const parts = [noteUses > 0 ? plural(noteUses, 'note') : '', snippetUses > 0 ? plural(snippetUses, 'snippet') : '']
+  return parts.filter(Boolean).join(' and ')
 }

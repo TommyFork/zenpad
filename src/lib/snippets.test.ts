@@ -1,14 +1,21 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildSnippetTree,
   countSnippetReferences,
   describeExpansion,
+  describeUses,
+  extractToSnippet,
   expandSnippetParts,
   expandSnippets,
   type ExpansionPart,
   isValidSnippetName,
   referencedSnippetNames,
   renameSnippetReferences,
+  snippetAncestors,
+  snippetParents,
+  type SnippetNode,
   sortSnippets,
+  suggestSnippetName,
   toSnippetName,
 } from './snippets'
 
@@ -183,5 +190,111 @@ describe('sortSnippets', () => {
   it('does not change the original list', () => {
     sortSnippets(snippets, 'name', counts)
     expect(names(snippets)).toEqual(['beta', 'alpha', 'gamma', 'delta'])
+  })
+})
+
+describe('snippetParents', () => {
+  const email = { name: 'email', body: '@greeting\n\n@signoff' }
+  const greeting = { name: 'greeting', body: 'Hi @first-name,' }
+  const firstName = { name: 'first-name', body: 'Sam' }
+  const signoff = { name: 'signoff', body: 'Thanks' }
+
+  it('nests a snippet used only by one other snippet', () => {
+    const parents = snippetParents([{ body: '@email' }], [email, greeting, firstName, signoff])
+    expect(Object.fromEntries(parents)).toEqual({ greeting: 'email', signoff: 'email', 'first-name': 'greeting' })
+  })
+
+  it('keeps a snippet at the top level once a note uses it', () => {
+    const parents = snippetParents([{ body: '@email' }, { body: '@signoff' }], [email, greeting, firstName, signoff])
+    expect(parents.has('signoff')).toBe(false)
+  })
+
+  it('keeps a snippet shared by two snippets at the top level', () => {
+    const letter = { name: 'letter', body: 'Dear team. @signoff' }
+    expect(snippetParents([], [email, letter, signoff]).has('signoff')).toBe(false)
+  })
+
+  it('ignores references to snippets that do not exist', () => {
+    expect(snippetParents([], [{ name: 'a', body: '@ghost' }]).size).toBe(0)
+  })
+
+  it('lifts one snippet out of a loop so the loop stays reachable', () => {
+    const parents = snippetParents([], [
+      { name: 'loop-b', body: '@loop-a' },
+      { name: 'loop-a', body: '@loop-b' },
+    ])
+    expect(Object.fromEntries(parents)).toEqual({ 'loop-b': 'loop-a' })
+  })
+})
+
+describe('buildSnippetTree', () => {
+  const snippets = [
+    { name: 'email', updatedAt: 1 },
+    { name: 'signoff', updatedAt: 2 },
+    { name: 'greeting', updatedAt: 3 },
+    { name: 'notes', updatedAt: 4 },
+  ]
+  const parents = new Map([
+    ['signoff', 'email'],
+    ['greeting', 'email'],
+  ])
+  const shape = (nodes: SnippetNode<{ name: string }>[]): unknown =>
+    nodes.map((node) => (node.children.length ? { [node.snippet.name]: shape(node.children) } : node.snippet.name))
+
+  it('nests children under their parent and sorts each level', () => {
+    expect(shape(buildSnippetTree(snippets, parents, 'name', new Map()))).toEqual([{ email: ['greeting', 'signoff'] }, 'notes'])
+    expect(shape(buildSnippetTree(snippets, parents, 'edited', new Map()))).toEqual(['notes', { email: ['greeting', 'signoff'] }])
+  })
+})
+
+describe('snippetAncestors', () => {
+  it('lists parents from innermost outwards', () => {
+    const parents = new Map([
+      ['first-name', 'greeting'],
+      ['greeting', 'email'],
+    ])
+    expect(snippetAncestors('first-name', parents)).toEqual(['greeting', 'email'])
+    expect(snippetAncestors('email', parents)).toEqual([])
+  })
+})
+
+describe('suggestSnippetName', () => {
+  it('uses the first few words', () => {
+    expect(suggestSnippetName('Thanks so much for your time today.')).toBe('thanks-so-much-for')
+  })
+
+  it('falls back when the text has no usable characters', () => {
+    expect(suggestSnippetName('!!! ???')).toBe('snippet')
+  })
+
+  it('keeps the name short', () => {
+    expect(suggestSnippetName('Supercalifragilisticexpialidocious-and-more words').length).toBeLessThanOrEqual(32)
+  })
+})
+
+describe('extractToSnippet', () => {
+  it('keeps edge whitespace outside the snippet', () => {
+    expect(extractToSnippet(' Best,\nSam\n', 'signoff', 'Thanks.', '')).toEqual({ body: 'Best,\nSam', insert: ' @signoff\n' })
+  })
+
+  it('adds a space when the reference would join a word before it', () => {
+    expect(extractToSnippet('world', 'place', 'hello', '!').insert).toBe(' @place')
+  })
+
+  it('adds a space when the reference would absorb the text after it', () => {
+    expect(extractToSnippet('hello', 'greeting', '', 'world').insert).toBe('@greeting ')
+  })
+
+  it('leaves punctuation next to the reference alone', () => {
+    expect(extractToSnippet('Sam', 'name', '(', ').').insert).toBe('@name')
+  })
+})
+
+describe('describeUses', () => {
+  it('names notes and snippets that use a snippet', () => {
+    expect(describeUses(2, 1)).toBe('2 notes and 1 snippet')
+    expect(describeUses(1, 0)).toBe('1 note')
+    expect(describeUses(0, 3)).toBe('3 snippets')
+    expect(describeUses(0, 0)).toBe('')
   })
 })

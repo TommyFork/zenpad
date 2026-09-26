@@ -8,6 +8,7 @@ import { useWorkspace } from './app/useWorkspace'
 import { useWritingFocus } from './app/useWritingFocus'
 import { CommandPalette, type PaletteItem } from './components/CommandPalette'
 import { DeleteDialog } from './components/DeleteDialog'
+import { ExtractDialog } from './components/ExtractDialog'
 import { NotePreview } from './components/NotePreview'
 import type { IconName } from './components/Icon'
 import { SettingsPanel } from './components/SettingsPanel'
@@ -16,14 +17,31 @@ import { Sidebar } from './components/Sidebar'
 import { StatusBar } from './components/StatusBar'
 import { ToastView } from './components/ToastView'
 import { TopBar } from './components/TopBar'
-import { Editor } from './editor/Editor'
+import { Editor, type EditorSelection } from './editor/Editor'
+import { useEditorHandle } from './editor/useEditorHandle'
 import { BackupError } from './lib/backup'
 import { downloadJson, pickFile } from './lib/files'
 import type { Snippet } from './lib/db'
-import { exportLibrary, importLibrary, requestPersistentStorage, seedOnFirstLaunch, setNoteFavorite } from './lib/library'
+import {
+  createSnippet,
+  exportLibrary,
+  importLibrary,
+  isSnippetNameTaken,
+  requestPersistentStorage,
+  seedOnFirstLaunch,
+  setNoteFavorite,
+} from './lib/library'
 import { notePreview, noteTitle } from './lib/notes'
 import { useSettings, type EditorFont, type SidebarSection, type Theme } from './lib/settings'
-import { expandSnippets, referencedSnippetNames } from './lib/snippets'
+import {
+  describeUses,
+  expandSnippets,
+  extractToSnippet,
+  isValidSnippetName,
+  referencedSnippetNames,
+  suggestSnippetName,
+  toSnippetName,
+} from './lib/snippets'
 
 const NARROW_SCREEN = '(max-width: 760px)'
 const NOTE_PLACEHOLDER = 'Start writing…'
@@ -41,12 +59,30 @@ function focusEditor() {
   document.querySelector<HTMLElement>('.cm-content')?.focus()
 }
 
-function deleteCopy(snippet: Snippet | undefined, usageCount: number, text: string): { title: string; detail: string } {
+interface SnippetUses {
+  notes: number
+  snippets: number
+  // Snippets nested inside this one in the sidebar.
+  nested: number
+}
+
+function deleteCopy(snippet: Snippet | undefined, uses: SnippetUses, text: string): { title: string; detail: string } {
   const undoHint = 'You can undo this for a few seconds afterwards.'
   if (!snippet) return { title: `Delete “${noteTitle(text)}”?`, detail: undoHint }
-  if (usageCount === 0) return { title: `Delete @${snippet.name}?`, detail: undoHint }
-  const notes = `${usageCount} ${usageCount === 1 ? 'note uses' : 'notes use'}`
-  return { title: `Delete @${snippet.name}?`, detail: `${notes} it. They'll keep @${snippet.name} as plain text. ${undoHint}` }
+  const users = describeUses(uses.notes, uses.snippets)
+  const nested = uses.nested > 0 ? `The ${uses.nested === 1 ? 'snippet' : 'snippets'} inside it will stay. ` : ''
+  if (!users) return { title: `Delete @${snippet.name}?`, detail: `${nested}${undoHint}` }
+  const verb = uses.notes + uses.snippets === 1 ? 'uses' : 'use'
+  return {
+    title: `Delete @${snippet.name}?`,
+    detail: `${users} ${verb} it. They'll keep @${snippet.name} as plain text. ${nested}${undoHint}`,
+  }
+}
+
+function uniqueName(base: string, taken: ReadonlySet<string>): string {
+  let candidate = base
+  for (let suffix = 2; taken.has(candidate); suffix++) candidate = `${base}-${suffix}`
+  return candidate
 }
 
 function applyTheme(theme: Theme) {
@@ -57,7 +93,7 @@ function applyTheme(theme: Theme) {
 export default function App() {
   const [settings, updateSettings] = useSettings()
   const library = useLibrary()
-  const { notes, snippets, snippetBodies } = library
+  const { notes, snippets, snippetBodies, referenceCounts, snippetParents } = library
   const { toast, showToast, dismissToast } = useToast()
   const workspace = useWorkspace(library, showToast)
   const isNarrow = useMediaQuery(NARROW_SCREEN)
@@ -66,6 +102,8 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [deleteRequested, setDeleteRequested] = useState(false)
+  const [extracting, setExtracting] = useState<EditorSelection | null>(null)
+  const { ref: editorRef, selection: editorSelection, replace: replaceInEditor } = useEditorHandle()
   const [previewKey, setPreviewKey] = useState<string | null>(null)
   const [storagePersisted, setStoragePersisted] = useState<boolean | null>(null)
   const started = useRef(false)
@@ -160,10 +198,52 @@ export default function App() {
 
   const expandedText = useMemo(() => expandSnippets(text, snippetBodies), [text, snippetBodies])
 
-  const usageCount = useMemo(
-    () => (openSnippet ? notes.filter((note) => referencedSnippetNames(note.body).includes(openSnippet.name)).length : 0),
-    [notes, openSnippet],
-  )
+  const snippetUses = useMemo((): SnippetUses => {
+    if (!openSnippet) return { notes: 0, snippets: 0, nested: 0 }
+    const uses = (body: string) => referencedSnippetNames(body).includes(openSnippet.name)
+    return {
+      notes: notes.filter((note) => uses(note.body)).length,
+      snippets: snippets.filter((snippet) => snippet.id !== openSnippet.id && uses(snippet.body)).length,
+      nested: [...snippetParents.values()].filter((parent) => parent === openSnippet.name).length,
+    }
+  }, [notes, snippets, snippetParents, openSnippet])
+
+  function toggleSnippetExpanded(id: string) {
+    const expanded = settings.expandedSnippets.filter((candidate) => snippets.some((snippet) => snippet.id === candidate))
+    updateSettings({
+      expandedSnippets: expanded.includes(id) ? expanded.filter((candidate) => candidate !== id) : [...expanded, id],
+    })
+  }
+
+  const startExtract = useCallback(() => {
+    const selection = previewing ? null : editorSelection()
+    if (!selection || selection.text.trim() === '') {
+      showToast('Select some text first, then make it a snippet.')
+      return
+    }
+    setExtracting(selection)
+  }, [previewing, showToast, editorSelection])
+
+  const cancelExtract = useCallback(() => {
+    setExtracting(null)
+    focusEditor()
+  }, [])
+
+  async function confirmExtract(requested: string): Promise<string | null> {
+    if (!extracting) return null
+    const name = toSnippetName(requested)
+    if (!isValidSnippetName(name)) return 'Snippet names use lowercase letters, numbers, dashes, and underscores.'
+    if (await isSnippetNameTaken(name)) return `@${name} already exists. Pick another name.`
+    const extraction = extractToSnippet(extracting.text, name, extracting.before, extracting.after)
+    const snippet = await createSnippet(name, extraction.body)
+    setExtracting(null)
+    if (!replaceInEditor(extracting, extraction.insert)) {
+      showToast(`Created @${name}, but the text changed, so it wasn't swapped in.`)
+      return null
+    }
+    showToast(`Moved into @${name}.`, { label: 'Open', run: () => open({ kind: 'snippet', id: snippet.id }) })
+    return null
+  }
 
   function open(doc: DocumentRef) {
     if (isNarrow) setDrawerOpen(false)
@@ -201,6 +281,7 @@ export default function App() {
         KeyE: togglePreview,
         Backslash: () => setSidebar(!sidebarVisible),
         'Alt+KeyN': () => void workspace.newNote(),
+        'Alt+KeyS': startExtract,
       }
       const run = handlers[event.altKey ? `Alt+${event.code}` : event.code]
       if (!run) return
@@ -222,6 +303,7 @@ export default function App() {
   const commands: Command[] = [
     { id: 'new-note', label: 'New note', icon: 'plus', shortcut: `${MOD_LABEL} ⌥ N`, run: workspace.newNote },
     { id: 'new-snippet', label: 'New snippet', icon: 'at', run: workspace.newSnippet },
+    { id: 'extract', label: 'Make a snippet from the selection', icon: 'at', shortcut: `${MOD_LABEL} ⌥ S`, run: startExtract },
     { id: 'copy', label: 'Copy with snippets filled in', icon: 'copy', shortcut: `${MOD_LABEL} ↵`, run: workspace.copyCurrent },
     {
       id: 'preview',
@@ -283,7 +365,7 @@ export default function App() {
     `font-${settings.font}`,
     sidebarVisible ? 'has-sidebar' : 'no-sidebar',
     isNarrow ? 'is-narrow' : '',
-    isWriting && !previewing && !paletteOpen && !settingsOpen && !deleteRequested ? 'is-writing' : '',
+    isWriting && !previewing && !paletteOpen && !settingsOpen && !deleteRequested && !extracting ? 'is-writing' : '',
   ]
 
   return (
@@ -297,8 +379,12 @@ export default function App() {
             openDoc={openDoc}
             collapsedSections={settings.collapsedSections}
             onToggleSection={toggleSection}
+            referenceCounts={referenceCounts}
+            snippetParents={snippetParents}
             snippetSort={settings.snippetSort}
             onSnippetSortChange={(snippetSort) => updateSettings({ snippetSort })}
+            expandedSnippets={settings.expandedSnippets}
+            onToggleSnippet={toggleSnippetExpanded}
             onOpen={open}
             onNewNote={() => {
               if (isNarrow) setDrawerOpen(false)
@@ -333,20 +419,25 @@ export default function App() {
           {openSnippet && (
             <SnippetHeader
               snippet={openSnippet}
-              usageCount={usageCount}
+              noteUses={snippetUses.notes}
+              snippetUses={snippetUses.snippets}
+              parentName={snippetParents.get(openSnippet.name)}
               focusName={workspace.focusNameFor === openSnippet.id}
               onRename={workspace.renameOpenSnippet}
               onNameDone={focusEditor}
+              onOpenSnippet={(name) => void workspace.openSnippetByName(name)}
             />
           )}
           {workspace.editorDocument && (
             <Editor
+              ref={editorRef}
               document={workspace.editorDocument}
               snippets={snippetBodies}
               placeholderText={openDoc?.kind === 'snippet' ? SNIPPET_PLACEHOLDER : NOTE_PLACEHOLDER}
               onChange={workspace.handleChange}
               onOpenSnippet={(name) => void workspace.openSnippetByName(name)}
               onCreateSnippet={(name) => void workspace.createSnippetInBackground(name)}
+              onExtract={startExtract}
             />
           )}
           {previewing && (
@@ -376,7 +467,15 @@ export default function App() {
           onClose={closeSettings}
         />
       )}
-      {deleteRequested && <DeleteDialog {...deleteCopy(openSnippet, usageCount, text)} onConfirm={confirmDelete} onCancel={cancelDelete} />}
+      {deleteRequested && <DeleteDialog {...deleteCopy(openSnippet, snippetUses, text)} onConfirm={confirmDelete} onCancel={cancelDelete} />}
+      {extracting && (
+        <ExtractDialog
+          text={extracting.text}
+          suggestedName={uniqueName(suggestSnippetName(extracting.text), new Set(snippetBodies.keys()))}
+          onConfirm={confirmExtract}
+          onCancel={cancelExtract}
+        />
+      )}
       <ToastView toast={toast} onDismiss={dismissToast} />
     </div>
   )

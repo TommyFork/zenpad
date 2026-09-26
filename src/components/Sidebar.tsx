@@ -1,11 +1,11 @@
-import { useMemo, type ReactNode } from 'react'
+import { useMemo, type CSSProperties, type ReactNode } from 'react'
 import { isSameDocument, type DocumentRef } from '../app/documents'
 import { MOD_LABEL } from '../app/keys'
 import { useNow } from '../app/useNow'
 import type { Note, Snippet } from '../lib/db'
 import { notePreview, noteTitle } from '../lib/notes'
 import type { SidebarSection } from '../lib/settings'
-import { countSnippetReferences, sortSnippets, type SnippetSort } from '../lib/snippets'
+import { buildSnippetTree, snippetAncestors, type SnippetNode, type SnippetSort } from '../lib/snippets'
 import { formatRelativeTime } from '../lib/time'
 import { GitHubIcon, Icon } from './Icon'
 
@@ -29,8 +29,12 @@ interface SidebarProps {
   openDoc: DocumentRef | null
   collapsedSections: SidebarSection[]
   onToggleSection: (section: SidebarSection) => void
+  referenceCounts: ReadonlyMap<string, number>
+  snippetParents: ReadonlyMap<string, string>
   snippetSort: SnippetSort
   onSnippetSortChange: (sort: SnippetSort) => void
+  expandedSnippets: string[]
+  onToggleSnippet: (id: string) => void
   onOpen: (doc: DocumentRef) => void
   onNewNote: () => void
   onNewSnippet: () => void
@@ -72,8 +76,12 @@ export function Sidebar({
   openDoc,
   collapsedSections,
   onToggleSection,
+  referenceCounts,
+  snippetParents,
   snippetSort,
   onSnippetSortChange,
+  expandedSnippets,
+  onToggleSnippet,
   onOpen,
   onNewNote,
   onNewSnippet,
@@ -85,11 +93,13 @@ export function Sidebar({
   const favorites = notes.filter((note) => note.favorite)
   const otherNotes = notes.filter((note) => !note.favorite)
   const isCollapsed = (section: SidebarSection) => collapsedSections.includes(section)
-  const referenceCounts = useMemo(() => countSnippetReferences(notes, snippets), [notes, snippets])
-  const sortedSnippets = useMemo(
-    () => sortSnippets(snippets, snippetSort, referenceCounts),
-    [snippets, snippetSort, referenceCounts],
+  const snippetTree = useMemo(
+    () => buildSnippetTree(snippets, snippetParents, snippetSort, referenceCounts),
+    [snippets, snippetParents, snippetSort, referenceCounts],
   )
+  // The open snippet's parents stay expanded so it is always visible in the list.
+  const openSnippetName = snippets.find((snippet) => snippet.id === openDoc?.id)?.name
+  const revealed = new Set(openSnippetName ? snippetAncestors(openSnippetName, snippetParents) : [])
   const sortIndex = Math.max(0, SNIPPET_SORTS.findIndex((sort) => sort.id === snippetSort))
   const currentSort = SNIPPET_SORTS[sortIndex]
   const nextSort = SNIPPET_SORTS[(sortIndex + 1) % SNIPPET_SORTS.length]
@@ -117,6 +127,45 @@ export function Sidebar({
           )
         })}
       </ul>
+    )
+  }
+
+  function snippetItem({ snippet, children }: SnippetNode<Snippet>, depth: number) {
+    const doc: DocumentRef = { kind: 'snippet', id: snippet.id }
+    const uses = referenceCounts.get(snippet.name) ?? 0
+    const expanded = children.length > 0 && (expandedSnippets.includes(snippet.id) || revealed.has(snippet.name))
+    const childrenId = `snippet-children-${snippet.id}`
+    return (
+      <li key={snippet.id} className="snippet-node" style={{ '--depth': depth } as CSSProperties}>
+        {children.length > 0 && (
+          <button
+            className="snippet-twisty"
+            aria-expanded={expanded}
+            aria-controls={childrenId}
+            aria-label={`${expanded ? 'Hide' : 'Show'} snippets inside @${snippet.name}`}
+            title={`${children.length} ${children.length === 1 ? 'snippet' : 'snippets'} inside`}
+            onClick={() => onToggleSnippet(snippet.id)}
+          >
+            <Icon name="chevron" size={12} />
+          </button>
+        )}
+        <button
+          className="doc-item snippet-item"
+          aria-current={isSameDocument(openDoc, doc) ? 'page' : undefined}
+          onClick={() => onOpen(doc)}
+        >
+          <span className="doc-item-row">
+            <span className="snippet-name">@{snippet.name}</span>
+            {snippetSort === 'references' && <span className="doc-time">{usageLabel(uses)}</span>}
+            {snippetSort === 'edited' && <time className="doc-time">{formatRelativeTime(snippet.updatedAt, now)}</time>}
+          </span>
+        </button>
+        {expanded && (
+          <ul id={childrenId} className="doc-list">
+            {children.map((child) => snippetItem(child, depth + 1))}
+          </ul>
+        )}
+      </li>
     )
   }
 
@@ -184,29 +233,7 @@ export function Sidebar({
               Save text you reuse, then type <span className="inline-chip">@name</span> in any note to drop it in.
             </p>
           ) : (
-            <ul className="doc-list">
-              {sortedSnippets.map((snippet) => {
-                const doc: DocumentRef = { kind: 'snippet', id: snippet.id }
-                const uses = referenceCounts.get(snippet.name) ?? 0
-                return (
-                  <li key={snippet.id}>
-                    <button
-                      className="doc-item snippet-item"
-                      aria-current={isSameDocument(openDoc, doc) ? 'page' : undefined}
-                      onClick={() => onOpen(doc)}
-                    >
-                      <span className="doc-item-row">
-                        <span className="snippet-name">@{snippet.name}</span>
-                        {snippetSort === 'references' && <span className="doc-time">{usageLabel(uses)}</span>}
-                        {snippetSort === 'edited' && (
-                          <time className="doc-time">{formatRelativeTime(snippet.updatedAt, now)}</time>
-                        )}
-                      </span>
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
+            <ul className="doc-list">{snippetTree.map((node) => snippetItem(node, 0))}</ul>
           )}
         </Section>
       </div>

@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useImperativeHandle, useRef, type Ref } from 'react'
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
 import { markdownKeymap, markdownLanguage } from '@codemirror/lang-markdown'
 import { LanguageSupport } from '@codemirror/language'
 import { highlightSelectionMatches, search, searchKeymap } from '@codemirror/search'
 import { EditorState, Prec, type Extension } from '@codemirror/state'
 import { drawSelection, EditorView, keymap, placeholder, tooltips } from '@codemirror/view'
+import { extractTooltip } from './extractTooltip'
 import { snippetChips } from './snippetChips'
 import { snippetCompletion } from './snippetCompletion'
 import { setSnippetBodies, snippetBodiesField, type SnippetBodies } from './snippetState'
@@ -20,7 +21,24 @@ export interface EditorDocument {
   focus: boolean
 }
 
+export interface EditorSelection {
+  // The document the selection belongs to, so a late edit can't land in a different one.
+  key: string
+  from: number
+  to: number
+  text: string
+  // The characters just outside the selection.
+  before: string
+  after: string
+}
+
+export interface EditorHandle {
+  selection: () => EditorSelection | null
+  replace: (selection: EditorSelection, insert: string) => boolean
+}
+
 interface EditorProps {
+  ref?: Ref<EditorHandle>
   document: EditorDocument
   snippets: SnippetBodies
   placeholderText: string
@@ -28,20 +46,58 @@ interface EditorProps {
   // Opens the named snippet, creating it first when it doesn't exist yet.
   onOpenSnippet: (name: string) => void
   onCreateSnippet: (name: string) => void
+  // Asks to move the selected text into a new snippet.
+  onExtract: () => void
 }
 
-export function Editor({ document, snippets, placeholderText, onChange, onOpenSnippet, onCreateSnippet }: EditorProps) {
+export function Editor({ ref, document, snippets, placeholderText, onChange, onOpenSnippet, onCreateSnippet, onExtract }: EditorProps) {
   const hostRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const cachedStates = useRef(new Map<string, EditorState>())
   const openKey = useRef<string | null>(null)
   const extensionsRef = useRef<Extension[]>([])
   const snippetsRef = useRef(snippets)
-  const callbacks = useRef({ onChange, onOpenSnippet, onCreateSnippet })
+  const callbacks = useRef({ onChange, onOpenSnippet, onCreateSnippet, onExtract })
 
   useEffect(() => {
-    callbacks.current = { onChange, onOpenSnippet, onCreateSnippet }
+    callbacks.current = { onChange, onOpenSnippet, onCreateSnippet, onExtract }
   })
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      selection() {
+        const view = viewRef.current
+        const key = openKey.current
+        if (!view || !key) return null
+        const { from, to } = view.state.selection.main
+        if (from === to) return null
+        const { doc } = view.state
+        return {
+          key,
+          from,
+          to,
+          text: doc.sliceString(from, to),
+          before: doc.sliceString(Math.max(0, from - 1), from),
+          after: doc.sliceString(to, Math.min(doc.length, to + 1)),
+        }
+      },
+      replace(selection, insert) {
+        const view = viewRef.current
+        if (!view || openKey.current !== selection.key) return false
+        if (view.state.sliceDoc(selection.from, selection.to) !== selection.text) return false
+        view.dispatch({
+          changes: { from: selection.from, to: selection.to, insert },
+          selection: { anchor: selection.from + insert.length },
+          scrollIntoView: true,
+          userEvent: 'input.extract',
+        })
+        view.focus()
+        return true
+      },
+    }),
+    [],
+  )
 
   useEffect(() => {
     const host = hostRef.current
@@ -67,6 +123,7 @@ export function Editor({ document, snippets, placeholderText, onChange, onOpenSn
       snippetBodiesField,
       snippetChips((name) => callbacks.current.onOpenSnippet(name)),
       snippetCompletion((name) => callbacks.current.onCreateSnippet(name)),
+      extractTooltip(() => callbacks.current.onExtract()),
       EditorView.contentAttributes.of({ spellcheck: 'true', autocapitalize: 'sentences', 'aria-label': 'Note' }),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) callbacks.current.onChange(update.state.doc.toString())

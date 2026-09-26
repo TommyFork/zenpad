@@ -13,11 +13,21 @@ export interface Settings {
   previewHighlights: boolean
   collapsedSections: SidebarSection[]
   snippetSort: SnippetSort
+  // Snippets whose nested snippets are shown in the sidebar, by id.
+  expandedSnippets: string[]
 }
 
 const STORAGE_KEY = 'zenpad.settings'
 
-const DEFAULT_SETTINGS: Settings = { theme: 'system', font: 'serif', sidebarOpen: true, previewHighlights: true, collapsedSections: [], snippetSort: 'name' }
+const DEFAULT_SETTINGS: Settings = {
+  theme: 'system',
+  font: 'serif',
+  sidebarOpen: true,
+  previewHighlights: true,
+  collapsedSections: [],
+  snippetSort: 'name',
+  expandedSnippets: [],
+}
 
 function readSettings(): Settings {
   try {
