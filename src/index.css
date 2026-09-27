@@ -635,9 +635,14 @@ kbd {
   }
 }
 
-/* The time would sit under the button, so it steps aside while the button shows. */
+/* The time would sit under the button, so it steps aside while the button shows and returns once it has faded out. */
+.doc-row > .doc-item .doc-time {
+  transition: visibility 0s 0.15s;
+}
+
 .doc-row:has(> .doc-item:hover, > .doc-item:focus-visible, > .doc-delete:hover, > .doc-delete:focus-visible) > .doc-item .doc-time {
   visibility: hidden;
+  transition-delay: 0s;
 }
 
 /* Without hover, the button stays visible and the row leaves room for it. */
