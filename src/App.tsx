@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { documentKey, type DocumentRef } from './app/documents'
+import { documentKey, isSameDocument, type DocumentRef } from './app/documents'
 import { hasModifier, MOD_LABEL } from './app/keys'
 import { useLibrary } from './app/useLibrary'
 import { useMediaQuery } from './app/useMediaQuery'
@@ -22,7 +22,7 @@ import { Editor, type EditorSelection } from './editor/Editor'
 import { useEditorHandle } from './editor/useEditorHandle'
 import { BackupError } from './lib/backup'
 import { downloadJson, pickFile } from './lib/files'
-import type { Snippet } from './lib/db'
+import type { Note, Snippet } from './lib/db'
 import {
   createSnippet,
   exportLibrary,
@@ -112,7 +112,7 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [mapOpen, setMapOpen] = useState(false)
-  const [deleteRequested, setDeleteRequested] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<DocumentRef | null>(null)
   const [extracting, setExtracting] = useState<EditorSelection | null>(null)
   const { ref: editorRef, selection: editorSelection, replace: replaceInEditor } = useEditorHandle()
   const [previewKey, setPreviewKey] = useState<string | null>(null)
@@ -179,19 +179,27 @@ export default function App() {
   }, [])
 
   const cancelDelete = useCallback(() => {
-    setDeleteRequested(false)
+    setDeleteTarget(null)
     focusEditor()
   }, [])
 
-  // Blank notes have nothing to lose, so they skip the confirmation.
-  function requestDelete() {
-    if (text.trim() === '') void workspace.deleteCurrent()
-    else setDeleteRequested(true)
+  function documentText(doc: DocumentRef): string {
+    if (isSameDocument(openDoc, doc)) return text
+    const records: (Note | Snippet)[] = doc.kind === 'note' ? notes : snippets
+    return records.find((record) => record.id === doc.id)?.body ?? ''
+  }
+
+  // Blank documents have nothing to lose, so they skip the confirmation.
+  function requestDelete(doc: DocumentRef | null = openDoc) {
+    if (!doc) return
+    if (documentText(doc).trim() === '') void workspace.deleteDocument(doc)
+    else setDeleteTarget(doc)
   }
 
   function confirmDelete() {
-    setDeleteRequested(false)
-    void workspace.deleteCurrent()
+    if (!deleteTarget) return
+    setDeleteTarget(null)
+    void workspace.deleteDocument(deleteTarget)
   }
 
   const togglePreview = useCallback(() => {
@@ -204,10 +212,10 @@ export default function App() {
   }, [previewing, openKey])
 
   const exitPreview = useCallback(() => {
-    if (paletteOpen || settingsOpen || deleteRequested || mapOpen) return
+    if (paletteOpen || settingsOpen || deleteTarget || mapOpen) return
     setPreviewKey(null)
     requestAnimationFrame(focusEditor)
-  }, [paletteOpen, settingsOpen, deleteRequested, mapOpen])
+  }, [paletteOpen, settingsOpen, deleteTarget, mapOpen])
 
   function toggleFavorite() {
     if (!openNote) return
@@ -242,10 +250,16 @@ export default function App() {
     [notes, snippets, openSnippet],
   )
 
-  const snippetUses: SnippetUses = {
-    notes: openSnippetUsers.notes.length,
-    snippets: openSnippetUsers.snippets.length,
-    nested: openSnippet ? [...snippetParents.values()].filter((parent) => parent === openSnippet.name).length : 0,
+  const deleteSnippetTarget = deleteTarget?.kind === 'snippet' ? snippets.find((snippet) => snippet.id === deleteTarget.id) : undefined
+
+  function snippetUses(snippet: Snippet | undefined): SnippetUses {
+    if (!snippet) return { notes: 0, snippets: 0, nested: 0 }
+    const users = snippetUsers(snippet.name, notes, snippets)
+    return {
+      notes: users.notes.length,
+      snippets: users.snippets.length,
+      nested: [...snippetParents.values()].filter((parent) => parent === snippet.name).length,
+    }
   }
 
   function toggleSnippetExpanded(id: string) {
@@ -367,7 +381,7 @@ export default function App() {
     { id: 'export', label: 'Export backup', icon: 'download', run: exportBackup },
     { id: 'import', label: 'Import backup', icon: 'upload', run: importBackup },
     { id: 'settings', label: 'Settings', icon: 'settings', run: () => setSettingsOpen(true) },
-    { id: 'delete', label: openDoc?.kind === 'snippet' ? 'Delete this snippet' : 'Delete this note', icon: 'trash', run: requestDelete },
+    { id: 'delete', label: openDoc?.kind === 'snippet' ? 'Delete this snippet' : 'Delete this note', icon: 'trash', run: () => requestDelete() },
   ]
 
   const paletteItems: PaletteItem[] = paletteOpen
@@ -407,7 +421,7 @@ export default function App() {
     `font-${settings.font}`,
     sidebarVisible ? 'has-sidebar' : 'no-sidebar',
     isNarrow ? 'is-narrow' : '',
-    isWriting && !previewing && !paletteOpen && !settingsOpen && !deleteRequested && !extracting && !mapOpen ? 'is-writing' : '',
+    isWriting && !previewing && !paletteOpen && !settingsOpen && !deleteTarget && !extracting && !mapOpen ? 'is-writing' : '',
   ]
 
   const sidebarProps = {
@@ -423,6 +437,7 @@ export default function App() {
     expandedSnippets: settings.expandedSnippets,
     onToggleSnippet: toggleSnippetExpanded,
     onOpen: open,
+    onDelete: (doc: DocumentRef) => requestDelete(doc),
     onNewNote: () => {
       if (isNarrow) setDrawerOpen(false)
       void workspace.newNote()
@@ -479,7 +494,7 @@ export default function App() {
           onReturn={() => workspace.returnTo && open(workspace.returnTo)}
           onTogglePreview={togglePreview}
           onCopy={() => void workspace.copyCurrent()}
-          onDelete={requestDelete}
+          onDelete={() => requestDelete()}
           onToggleFavorite={toggleFavorite}
         />
         <div className={`page${previewing ? ' is-previewing' : ''}`} data-kind={openDoc?.kind}>
@@ -536,7 +551,13 @@ export default function App() {
           onClose={closeSettings}
         />
       )}
-      {deleteRequested && <DeleteDialog {...deleteCopy(openSnippet, snippetUses, text)} onConfirm={confirmDelete} onCancel={cancelDelete} />}
+      {deleteTarget && (
+        <DeleteDialog
+          {...deleteCopy(deleteSnippetTarget, snippetUses(deleteSnippetTarget), documentText(deleteTarget))}
+          onConfirm={confirmDelete}
+          onCancel={cancelDelete}
+        />
+      )}
       {extracting && (
         <ExtractDialog
           text={extracting.text}

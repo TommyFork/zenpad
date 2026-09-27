@@ -593,6 +593,66 @@ kbd {
   padding: 6px 12px;
 }
 
+/* Sits over the right end of the row's first line and shows while the row is hovered or focused. */
+.doc-row {
+  position: relative;
+}
+
+.doc-delete {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  color: var(--muted);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s, color 0.15s, background-color 0.15s;
+}
+
+.snippet-node > .doc-delete {
+  top: 3px;
+}
+
+.doc-item:hover + .doc-delete,
+.doc-delete:hover,
+.doc-delete:focus-visible,
+.doc-item:focus-visible + .doc-delete {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.doc-delete:hover {
+  color: var(--ink);
+}
+
+@media (hover: hover) {
+  .doc-row:has(> .doc-delete:hover) > .doc-item {
+    background: var(--line);
+  }
+}
+
+/* The time would sit under the button, so it steps aside while the button shows. */
+.doc-row:has(> .doc-item:hover, > .doc-item:focus-visible, > .doc-delete:hover, > .doc-delete:focus-visible) > .doc-item .doc-time {
+  visibility: hidden;
+}
+
+/* Without hover, the button stays visible and the row leaves room for it. */
+@media (hover: none) {
+  .doc-delete {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .doc-row > .doc-item .doc-item-row {
+    padding-right: 26px;
+  }
+}
+
+
 .snippet-node {
   position: relative;
 }

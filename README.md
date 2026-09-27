@@ -12,6 +12,7 @@ Zenpad was built for writing AI prompts, but it works for any writing where you 
 - **Preview with snippets filled in.** `⌘ E` shows the note as it will be copied, with every snippet filled in. Filled-in text is tinted so you can see where each snippet starts and ends, and you can turn the tint off for a clean read. `Esc` goes back to editing.
 - **See where snippets are used.** A snippet's page lists every note and snippet that uses it, one click away. The **snippet map** draws all your snippets and the notes that use them as an interactive graph: hover to trace connections, click to open, drag to rearrange, and scroll to zoom. Open it from the Snippets section, a snippet's page, or `⌘ K`.
 - **Favorites.** Star a note to pin it to a Favorites section at the top of the sidebar. The Favorites, Notes, and Snippets sections each collapse, and Zenpad remembers which ones you closed.
+- **Delete from the sidebar.** Hover a note or snippet in the sidebar and click the trash icon to delete it without opening it. Deleting asks first and can be undone for a few seconds.
 - **Search and commands.** `⌘ K` searches every note and snippet and runs every command.
 - **Private by design.** No server, no accounts, no analytics. Notes live in your browser's IndexedDB.
 - **Works offline.** Installable as an app (PWA) that loads with no network.

@@ -36,6 +36,7 @@ interface SidebarProps {
   expandedSnippets: string[]
   onToggleSnippet: (id: string) => void
   onOpen: (doc: DocumentRef) => void
+  onDelete: (doc: DocumentRef) => void
   onNewNote: () => void
   onNewSnippet: () => void
   onShowMap: () => void
@@ -91,6 +92,7 @@ export function Sidebar({
   expandedSnippets,
   onToggleSnippet,
   onOpen,
+  onDelete,
   onNewNote,
   onNewSnippet,
   onShowMap,
@@ -114,6 +116,14 @@ export function Sidebar({
   const currentSort = SNIPPET_SORTS[sortIndex]
   const nextSort = SNIPPET_SORTS[(sortIndex + 1) % SNIPPET_SORTS.length]
 
+  function deleteButton(doc: DocumentRef, label: string) {
+    return (
+      <button className="doc-delete" onClick={() => onDelete(doc)} aria-label={`Delete ${label}`} title="Delete">
+        <Icon name="trash" size={15} />
+      </button>
+    )
+  }
+
   function noteList(list: Note[]) {
     return (
       <ul className="doc-list">
@@ -121,7 +131,7 @@ export function Sidebar({
           const doc: DocumentRef = { kind: 'note', id: note.id }
           const preview = notePreview(note.body)
           return (
-            <li key={note.id}>
+            <li key={note.id} className="doc-row">
               <button
                 className="doc-item"
                 aria-current={isSameDocument(openDoc, doc) ? 'page' : undefined}
@@ -133,6 +143,7 @@ export function Sidebar({
                 </span>
                 {preview && <span className="doc-preview">{preview}</span>}
               </button>
+              {deleteButton(doc, `note “${noteTitle(note.body)}”`)}
             </li>
           )
         })}
@@ -146,7 +157,7 @@ export function Sidebar({
     const expanded = children.length > 0 && (expandedSnippets.includes(snippet.id) || revealed.has(snippet.name))
     const childrenId = `snippet-children-${snippet.id}`
     return (
-      <li key={snippet.id} className="snippet-node" style={{ '--depth': depth } as CSSProperties}>
+      <li key={snippet.id} className="doc-row snippet-node" style={{ '--depth': depth } as CSSProperties}>
         {children.length > 0 && (
           <button
             className="snippet-twisty"
@@ -170,6 +181,7 @@ export function Sidebar({
             {snippetSort === 'edited' && <time className="doc-time">{formatRelativeTime(snippet.updatedAt, now)}</time>}
           </span>
         </button>
+        {deleteButton(doc, `snippet @${snippet.name}`)}
         {expanded && (
           <ul id={childrenId} className="doc-list">
             {children.map((child) => snippetItem(child, depth + 1))}
