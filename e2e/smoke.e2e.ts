@@ -84,12 +84,35 @@ test('shows where a snippet is used and maps it', async ({ page }) => {
   expect(errors).toEqual([])
 })
 
+test('deletes a snippet from the sidebar without leaving the open note', async ({ page }) => {
+  const errors = watchForErrors(page)
+  await page.goto('/')
+  const editor = page.locator('.cm-content')
+  await expect(editor).toContainText('Welcome to Zenpad')
+
+  const snippet = page.locator('.snippet-item', { hasText: '@tone' })
+  await snippet.hover()
+  await page.getByRole('button', { name: 'Delete snippet @tone' }).click()
+  const dialog = page.getByRole('alertdialog', { name: 'Delete @tone?' })
+  await expect(dialog).toContainText('uses it')
+  await dialog.getByRole('button', { name: 'Delete' }).click()
+
+  await expect(snippet).toHaveCount(0)
+  await expect(editor).toContainText('Welcome to Zenpad')
+
+  await page.getByRole('button', { name: 'Undo' }).click()
+  await expect(snippet).toHaveCount(1)
+  await expect(editor).toContainText('Welcome to Zenpad')
+  expect(errors).toEqual([])
+})
+
 test('fills in note variables and jumps to where one is set', async ({ page }) => {
   const errors = watchForErrors(page)
   await page.goto('/')
   await expect(page.locator('.cm-content')).toContainText('Welcome to Zenpad')
 
-  await page.locator('.new-note-button').click()
+  await page.keyboard.press('ControlOrMeta+Alt+KeyN')
+  await expect(page.locator('.cm-content')).not.toContainText('Welcome to Zenpad')
   await page.locator('.cm-content').click()
   await page.keyboard.insertText('$branch = fix/login\n\nCheckout $branch, then rebase $branch.')
   await expect(page.locator('.cm-variable', { hasText: '$branch' })).toHaveCount(3)
@@ -99,8 +122,8 @@ test('fills in note variables and jumps to where one is set', async ({ page }) =
   await page.keyboard.type('feat/signup')
 
   await page.keyboard.press('ControlOrMeta+KeyE')
-  const preview = page.locator('.preview-body')
+  const preview = page.locator('.preview-host .cm-content')
   await expect(preview).toHaveText('Checkout feat/signup, then rebase feat/signup.')
-  await expect(page.locator('.preview-summary')).toHaveText('1 variable filled in')
+  await expect(page.locator('.cm-preview-variable')).toHaveCount(2)
   expect(errors).toEqual([])
 })

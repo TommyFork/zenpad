@@ -1,115 +1,124 @@
-import { useEffect, useMemo, useRef, type MouseEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
+import { markdownLanguage } from '@codemirror/lang-markdown'
+import { LanguageSupport } from '@codemirror/language'
+import { EditorState, RangeSetBuilder } from '@codemirror/state'
+import { Decoration, EditorView, placeholder, WidgetType, type DecorationSet } from '@codemirror/view'
 import { hasModifier, MOD_LABEL } from '../app/keys'
 import { useEscape } from '../app/useEscape'
-import type { ExpansionPart } from '../lib/snippets'
+import { flattenExpansion, type ExpansionSpan } from '../lib/snippets'
 import { fillInParts } from '../lib/variables'
+import { zenAppearance } from '../editor/theme'
 
 interface NotePreviewProps {
   text: string
   snippets: ReadonlyMap<string, string>
   highlights: boolean
-  onToggleHighlights: () => void
   onOpenSnippet: (name: string) => void
   onExit: () => void
 }
 
-function filledNames(parts: ExpansionPart[], names = new Set<string>()): Set<string> {
-  for (const part of parts) {
-    if (part.kind !== 'snippet') continue
-    if (part.parts.length > 0) names.add(part.name)
-    filledNames(part.parts, names)
+// Empty snippets copy as nothing, so they only show up as a chip while highlighting.
+class EmptyChip extends WidgetType {
+  readonly name: string
+
+  constructor(name: string) {
+    super()
+    this.name = name
   }
-  return names
-}
 
-function variableNames(parts: ExpansionPart[], names = new Set<string>()): Set<string> {
-  for (const part of parts) {
-    if (part.kind === 'variable') names.add(part.name)
-    if (part.kind === 'snippet') variableNames(part.parts, names)
+  eq(other: EmptyChip) {
+    return other.name === this.name
   }
-  return names
+
+  toDOM() {
+    const chip = document.createElement('span')
+    chip.className = 'cm-snippet cm-snippet-empty'
+    chip.dataset.snippet = this.name
+    chip.title = `@${this.name} is empty, so it copies as nothing`
+    chip.textContent = `@${this.name}`
+    return chip
+  }
 }
 
-function plural(count: number, noun: string): string {
-  return `${count} ${noun}${count === 1 ? '' : 's'}`
-}
-
-function summary(parts: ExpansionPart[]): string {
-  const snippets = filledNames(parts).size
-  const variables = variableNames(parts).size
-  if (snippets === 0 && variables === 0) return 'No snippets to fill in'
-  return `${[snippets > 0 ? plural(snippets, 'snippet') : '', variables > 0 ? plural(variables, 'variable') : ''].filter(Boolean).join(' and ')} filled in`
-}
-
-function renderParts(parts: ExpansionPart[], path: string): ReactNode[] {
-  return parts.map((part, index) => {
-    const key = `${path}.${index}`
-    if (part.kind === 'text') return part.text
-    if (part.kind === 'variable') {
-      return (
-        <span key={key} className="preview-variable" title={`$${part.name}`}>
-          {part.text}
-        </span>
-      )
+// Filled-in text is always marked so ⌘ click works; the tint and chips follow the highlight setting.
+function spanDecorations(spans: ExpansionSpan[], highlights: boolean): DecorationSet {
+  const builder = new RangeSetBuilder<Decoration>()
+  // Spans arrive outer first, so equal starts are already in the order RangeSetBuilder needs.
+  const sorted = [...spans].sort((a, b) => a.from - b.from)
+  for (const span of sorted) {
+    if (!highlights && span.kind !== 'snippet') continue
+    if (span.kind === 'variable') {
+      if (span.from < span.to) builder.add(span.from, span.to, Decoration.mark({ class: 'cm-preview-variable', attributes: { title: `$${span.name}` } }))
+    } else if (span.kind === 'empty') {
+      builder.add(span.from, span.to, Decoration.widget({ widget: new EmptyChip(span.name), side: 1 }))
+    } else if (span.kind === 'unresolved') {
+      const reason = "Isn't a snippet yet, so it's copied as written"
+      builder.add(span.from, span.to, Decoration.mark({ class: 'cm-snippet cm-snippet-missing', attributes: { 'data-snippet': span.name, title: `@${span.name}: ${reason}` } }))
+    } else {
+      builder.add(span.from, span.to, Decoration.mark({ class: 'cm-preview-snippet', attributes: { 'data-snippet': span.name, title: `@${span.name}  ·  ${MOD_LABEL} click to open` } }))
     }
-    if (part.kind === 'unresolved') {
-      const reason = part.reason === 'missing' ? "Isn't a snippet yet, so it's copied as written" : 'Uses itself, so it stops here'
-      return (
-        <span key={key} className="preview-chip is-unresolved" data-snippet={part.name} title={`@${part.name}: ${reason}`}>
-          @{part.name}
-        </span>
-      )
-    }
-    if (part.parts.length === 0) {
-      return (
-        <span key={key} className="preview-chip is-empty" data-snippet={part.name} title={`@${part.name} is empty, so it copies as nothing`}>
-          @{part.name}
-        </span>
-      )
-    }
-    return (
-      <span key={key} className="preview-snippet" data-snippet={part.name} title={`@${part.name}  ·  ${MOD_LABEL} click to open`}>
-        {renderParts(part.parts, key)}
-      </span>
-    )
-  })
+  }
+  return builder.finish()
 }
 
-// A read-only view of the note exactly as it would be copied, with every @snippet filled in.
-export function NotePreview({ text, snippets, highlights, onToggleHighlights, onOpenSnippet, onExit }: NotePreviewProps) {
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const parts = useMemo(() => fillInParts(text, snippets), [text, snippets])
+// A read-only view of the note exactly as it would be copied, with every @snippet and $variable filled in.
+// It uses the editor's own layout and markdown styling so switching to it doesn't move the page.
+export function NotePreview({ text, snippets, highlights, onOpenSnippet, onExit }: NotePreviewProps) {
+  const hostRef = useRef<HTMLDivElement>(null)
+  const viewRef = useRef<EditorView | null>(null)
+  const openRef = useRef(onOpenSnippet)
+  const expansion = useMemo(() => flattenExpansion(fillInParts(text, snippets)), [text, snippets])
 
   useEscape(onExit)
 
   useEffect(() => {
-    scrollRef.current?.focus({ preventScroll: true })
+    openRef.current = onOpenSnippet
+  })
+
+  useEffect(() => {
+    const host = hostRef.current
+    if (!host) return
+    const view = new EditorView({ parent: host })
+    viewRef.current = view
+    view.scrollDOM.tabIndex = -1
+    view.scrollDOM.focus({ preventScroll: true })
+    return () => {
+      view.destroy()
+      viewRef.current = null
+    }
   }, [])
 
-  function openOnModClick(event: MouseEvent) {
-    if (!hasModifier(event) || !(event.target instanceof HTMLElement)) return
-    const name = event.target.closest<HTMLElement>('[data-snippet]')?.dataset.snippet
-    if (!name) return
-    event.preventDefault()
-    onOpenSnippet(name)
-  }
+  useEffect(() => {
+    const view = viewRef.current
+    if (!view) return
+    const scrollTop = view.scrollDOM.scrollTop
+    view.setState(
+      EditorState.create({
+        doc: expansion.text,
+        extensions: [
+          EditorState.readOnly.of(true),
+          EditorView.editable.of(false),
+          EditorView.lineWrapping,
+          new LanguageSupport(markdownLanguage),
+          EditorView.contentAttributes.of({ 'aria-label': 'Preview with snippets filled in' }),
+          EditorView.decorations.of(spanDecorations(expansion.spans, highlights)),
+          placeholder('Nothing here yet.'),
+          EditorView.domEventHandlers({
+            mousedown(event) {
+              if (!hasModifier(event) || !(event.target instanceof HTMLElement)) return false
+              const name = event.target.closest<HTMLElement>('[data-snippet]')?.dataset.snippet
+              if (!name) return false
+              event.preventDefault()
+              openRef.current(name)
+              return true
+            },
+          }),
+          zenAppearance,
+        ],
+      }),
+    )
+    view.scrollDOM.scrollTop = scrollTop
+  }, [expansion, highlights])
 
-  return (
-    <div className="preview" ref={scrollRef} tabIndex={-1} aria-label="Preview with snippets filled in">
-      <div className="preview-inner">
-        <div className="preview-head">
-          <span className="preview-kicker">
-            Preview <span aria-hidden="true">·</span> <span className="preview-summary">{summary(parts)}</span>
-          </span>
-          <button className="preview-toggle" role="switch" aria-checked={highlights} onClick={onToggleHighlights}>
-            <span className="preview-toggle-track" aria-hidden="true" />
-            Highlight snippets
-          </button>
-        </div>
-        <div className={`preview-body${highlights ? ' has-highlights' : ''}`} onMouseDown={openOnModClick}>
-          {text.trim() === '' ? <span className="preview-empty">Nothing here yet.</span> : renderParts(parts, 'p')}
-        </div>
-      </div>
-    </div>
-  )
+  return <div className={`editor-host preview-host${highlights ? ' has-highlights' : ''}`} ref={hostRef} />
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { noteTitle } from './notes'
-import type { ExpansionPart } from './snippets'
+import { flattenExpansion, type ExpansionPart } from './snippets'
 import {
   describeFillIn,
   fillIn,
@@ -107,6 +107,12 @@ describe('fillInParts', () => {
     for (const text of [note, 'plain', '$a = 1\n$a$a @missing', '$x = @tone\n$x']) {
       expect(flatten(fillInParts(text, bodies))).toBe(fillIn(text, bodies))
     }
+  })
+
+  it('keeps the range each variable filled when flattened for the preview', () => {
+    const { text, spans } = flattenExpansion(fillInParts('$pr = 7\n\nPR $pr', bodies))
+    expect(text).toBe(fillIn('$pr = 7\n\nPR $pr', bodies))
+    expect(spans).toEqual([{ from: 3, to: 4, name: 'pr', kind: 'variable' }])
   })
 
   it('marks filled-in variables, including inside snippets', () => {
