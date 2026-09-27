@@ -33,18 +33,42 @@ interface Peek {
 }
 
 const PEEK_DELAY = 350
+// Long enough for the pointer to cross from the link onto the card.
+const PEEK_HIDE_DELAY = 150
 const PEEK_WIDTH = 360
 const PEEK_GAP = 8
 const PEEK_MARGIN = 16
 
-// A read-only glimpse of where a note or snippet mentions this one, shown while hovering its link.
-function UserPeek({ peek, name, id }: { peek: Peek; name: string; id: string }) {
+interface UserPeekProps {
+  peek: Peek
+  name: string
+  id: string
+  onEnter: () => void
+  onLeave: () => void
+  onOpen: (doc: DocumentRef) => void
+}
+
+// A glimpse of where a note or snippet mentions this one, shown while hovering its link or the card itself.
+function UserPeek({ peek, name, id, onEnter, onLeave, onOpen }: UserPeekProps) {
   const { item, anchor } = peek
   const excerpt = referenceExcerpt(item.body, name)
   const width = Math.min(PEEK_WIDTH, window.innerWidth - PEEK_MARGIN * 2)
   const left = Math.max(PEEK_MARGIN, Math.min(anchor.left, window.innerWidth - width - PEEK_MARGIN))
   return (
-    <div id={id} role="tooltip" className="user-peek" style={{ top: anchor.bottom + PEEK_GAP, left, width }}>
+    <div
+      id={id}
+      role="tooltip"
+      className="user-peek"
+      tabIndex={-1}
+      style={{ top: anchor.bottom + PEEK_GAP, left, width }}
+      onPointerEnter={onEnter}
+      onPointerLeave={onLeave}
+      onClick={() => {
+        // Selecting text in the card shouldn't navigate away.
+        if (window.getSelection()?.toString()) return
+        onOpen(item.doc)
+      }}
+    >
       <div className={`user-peek-title is-${item.doc.kind}`}>
         <Icon name={item.doc.kind === 'note' ? 'note' : 'at'} size={14} />
         <span>{item.label}</span>
@@ -92,9 +116,23 @@ function UsedIn({
     setPeek(null)
   }
 
+  function leavePeek() {
+    window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(() => setPeek(null), PEEK_HIDE_DELAY)
+  }
+
+  function keepPeek() {
+    window.clearTimeout(timer.current)
+  }
+
   function showPeek(item: UserItem, target: HTMLElement, delay: number) {
     window.clearTimeout(timer.current)
     timer.current = window.setTimeout(() => setPeek({ item, anchor: target.getBoundingClientRect() }), delay)
+  }
+
+  function openItem(doc: DocumentRef) {
+    hidePeek()
+    onOpen(doc)
   }
 
   // The card is positioned against the link, so any scroll would leave it behind.
@@ -117,14 +155,15 @@ function UsedIn({
           <li key={item.doc.id}>
             <button
               className={`used-in-item is-${item.doc.kind}`}
-              onClick={() => {
-                hidePeek()
-                onOpen(item.doc)
-              }}
-              onPointerEnter={(event) => event.pointerType === 'mouse' && showPeek(item, event.currentTarget, PEEK_DELAY)}
-              onPointerLeave={hidePeek}
+              onClick={() => openItem(item.doc)}
+              // Once a card is open, moving to another link swaps it straight away.
+              onPointerEnter={(event) => event.pointerType === 'mouse' && showPeek(item, event.currentTarget, peek ? 0 : PEEK_DELAY)}
+              onPointerLeave={leavePeek}
               onFocus={(event) => event.currentTarget.matches(':focus-visible') && showPeek(item, event.currentTarget, 0)}
-              onBlur={hidePeek}
+              onBlur={(event) => {
+                if (event.relatedTarget instanceof HTMLElement && event.relatedTarget.closest('.user-peek')) return
+                hidePeek()
+              }}
               onKeyDown={(event) => {
                 if (event.key !== 'Escape' || !peek) return
                 event.stopPropagation()
@@ -145,7 +184,7 @@ function UsedIn({
           </li>
         )}
       </ul>
-      {peek && <UserPeek peek={peek} name={name} id={peekId} />}
+      {peek && <UserPeek peek={peek} name={name} id={peekId} onEnter={keepPeek} onLeave={leavePeek} onOpen={openItem} />}
     </>
   )
 }

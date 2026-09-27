@@ -980,7 +980,8 @@ kbd {
   border-radius: 12px;
   background: var(--surface-raised);
   box-shadow: var(--shadow-pop);
-  pointer-events: none;
+  cursor: pointer;
+  outline: none;
   animation: fade-in 0.12s var(--ease);
 }
 

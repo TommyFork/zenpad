@@ -82,6 +82,16 @@ test('shows where a snippet is used and maps it', async ({ page }) => {
   await page.mouse.move(0, 0)
   await expect(peek).toBeHidden()
 
+  // The card stays open while the pointer is over it, and clicking it opens the note.
+  await usedIn.getByRole('button', { name: /Welcome to Zenpad/ }).hover()
+  await peek.hover()
+  await page.waitForTimeout(400)
+  await expect(peek).toBeVisible()
+  await peek.click()
+  await expect(peek).toBeHidden()
+  await expect(page.locator('.cm-content')).toContainText('Welcome to Zenpad')
+  await page.locator('.snippet-item', { hasText: '@tone' }).click()
+
   await page.getByRole('button', { name: 'Map', exact: true }).click()
   const map = page.getByRole('dialog', { name: 'Snippet map' })
   await expect(map.getByRole('button', { name: /^Open @tone/ })).toBeVisible()
