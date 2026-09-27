@@ -316,16 +316,14 @@ kbd {
 /* While hidden, hovering the show-sidebar button slides the sidebar in over the page. */
 .sidebar.is-peek {
   position: fixed;
-  top: 8px;
-  bottom: 8px;
-  left: 8px;
+  top: 0;
+  bottom: 0;
+  left: 0;
   z-index: 35;
-  border: 1px solid var(--line-strong);
-  border-radius: 12px;
   box-shadow: var(--shadow-dialog);
   overflow: hidden;
   opacity: 0;
-  transform: translateX(calc(-100% - 16px));
+  transform: translateX(calc(-100% - 8px));
   transition:
     transform 0.26s var(--ease),
     opacity 0.2s var(--ease);
@@ -340,19 +338,19 @@ kbd {
   right: 0;
 }
 
+/* Mirrors the top bar (56px tall, 14px in) so the toggle sits exactly where the show-sidebar button does. */
 .sidebar-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 12px 10px 20px;
+  height: 56px;
+  padding: 0 12px 0 14px;
+  flex-shrink: 0;
 }
 
-.wordmark {
-  font-family: var(--serif-font);
-  font-size: 20px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  font-variation-settings: 'opsz' 36;
+/* The drawer sits flush left, and the narrow top bar has 8px of padding. */
+.is-narrow .sidebar-head {
+  padding-left: 8px;
 }
 
 .icon-button {
@@ -376,31 +374,6 @@ kbd {
   width: 26px;
   height: 26px;
   border-radius: 7px;
-}
-
-.new-note-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  margin: 0 12px 8px;
-  padding: 9px 12px;
-  border-radius: 9px;
-  font-weight: 600;
-  color: var(--bg);
-  background: var(--accent);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-  transition: background-color 0.15s, transform 0.1s;
-}
-
-@media (hover: hover) {
-  .new-note-button:hover {
-    background: var(--accent-ink);
-  }
-}
-
-.new-note-button:active {
-  transform: scale(0.98);
 }
 
 .search-trigger {
