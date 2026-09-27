@@ -21,7 +21,8 @@ src/
   lib/               pure logic and storage: Dexie schema, library CRUD, snippet parsing and expansion,
                      snippet graph and layout, backups, settings, note titles and counts
 e2e/                 Playwright smoke tests (*.e2e.ts) run against the production build
-public/              favicon and PWA icons
+public/              favicon and PWA icons (public/favicon.svg is also the logo in README.md)
+docs/                README assets (preview.gif)
 vite.config.ts       build config, Content Security Policy, _headers file, PWA manifest
 wrangler.jsonc       Cloudflare Pages config
 ```
@@ -65,6 +66,8 @@ Before opening a PR, run `npm run typecheck`, `npm run lint`, `npm test`, `npm r
 - **deploy** (`main` only): deploys the exact `dist/` the smoke tests ran against.
 
 `.github/workflows/pr-title.yml` checks PR titles (see below). `.github/workflows/claude.yml` runs Claude Code when someone mentions `@claude` on an issue or PR. Dependabot opens weekly grouped updates for npm and GitHub Actions.
+
+Deploys need a `CLOUDFLARE_API_TOKEN` secret (a Cloudflare API token with the "Cloudflare Pages: Edit" account permission) and a `CLOUDFLARE_ACCOUNT_ID` variable on the GitHub repo. Pull requests from forks skip the preview deploy, since they can't read secrets. To deploy by hand, run `npx wrangler login` once, then `npm run deploy`.
 
 ## Conventions
 

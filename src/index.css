@@ -1098,6 +1098,11 @@ kbd {
   caret-color: transparent;
 }
 
+/* The preview focuses its scroller so keys scroll it; the ring around the whole page adds nothing. */
+.preview-host .cm-scroller:focus {
+  outline: none;
+}
+
 .preview-host.has-highlights .cm-preview-snippet {
   border-radius: 4px;
   background: var(--accent-wash);
