@@ -199,13 +199,11 @@ export function Sidebar({
             <Icon name="sidebar" />
           </button>
         )}
-        <span className="wordmark">Zenpad</span>
+        <button className="new-note-button" onClick={onNewNote} title={`New note  ${MOD_LABEL} ⌥ N`}>
+          <Icon name="plus" size={16} />
+          <span>New note</span>
+        </button>
       </div>
-
-      <button className="new-note-button" onClick={onNewNote} title={`New note  ${MOD_LABEL} ⌥ N`}>
-        <Icon name="plus" size={16} />
-        <span>New note</span>
-      </button>
 
       <button className="search-trigger" onClick={onSearch}>
         <Icon name="search" size={16} />
