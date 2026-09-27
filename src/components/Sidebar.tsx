@@ -36,12 +36,14 @@ interface SidebarProps {
   expandedSnippets: string[]
   onToggleSnippet: (id: string) => void
   onOpen: (doc: DocumentRef) => void
+  onDelete: (doc: DocumentRef) => void
   onNewNote: () => void
   onNewSnippet: () => void
   onShowMap: () => void
   onSearch: () => void
   onSettings: () => void
-  onClose: () => void
+  // byPointer is true when the header button was clicked, which leaves the pointer over the show-sidebar button.
+  onClose: (byPointer?: boolean) => void
   // Set when the sidebar is hidden and slides in over the page while the pointer rests on it.
   peek?: {
     open: boolean
@@ -91,6 +93,7 @@ export function Sidebar({
   expandedSnippets,
   onToggleSnippet,
   onOpen,
+  onDelete,
   onNewNote,
   onNewSnippet,
   onShowMap,
@@ -114,6 +117,14 @@ export function Sidebar({
   const currentSort = SNIPPET_SORTS[sortIndex]
   const nextSort = SNIPPET_SORTS[(sortIndex + 1) % SNIPPET_SORTS.length]
 
+  function deleteButton(doc: DocumentRef, label: string) {
+    return (
+      <button className="doc-delete" onClick={() => onDelete(doc)} aria-label={`Delete ${label}`} title="Delete">
+        <Icon name="trash" size={15} />
+      </button>
+    )
+  }
+
   function noteList(list: Note[]) {
     return (
       <ul className="doc-list">
@@ -121,7 +132,7 @@ export function Sidebar({
           const doc: DocumentRef = { kind: 'note', id: note.id }
           const preview = notePreview(note.body)
           return (
-            <li key={note.id}>
+            <li key={note.id} className="doc-row">
               <button
                 className="doc-item"
                 aria-current={isSameDocument(openDoc, doc) ? 'page' : undefined}
@@ -133,6 +144,7 @@ export function Sidebar({
                 </span>
                 {preview && <span className="doc-preview">{preview}</span>}
               </button>
+              {deleteButton(doc, `note “${noteTitle(note.body)}”`)}
             </li>
           )
         })}
@@ -146,7 +158,7 @@ export function Sidebar({
     const expanded = children.length > 0 && (expandedSnippets.includes(snippet.id) || revealed.has(snippet.name))
     const childrenId = `snippet-children-${snippet.id}`
     return (
-      <li key={snippet.id} className="snippet-node" style={{ '--depth': depth } as CSSProperties}>
+      <li key={snippet.id} className="doc-row snippet-node" style={{ '--depth': depth } as CSSProperties}>
         {children.length > 0 && (
           <button
             className="snippet-twisty"
@@ -170,6 +182,7 @@ export function Sidebar({
             {snippetSort === 'edited' && <time className="doc-time">{formatRelativeTime(snippet.updatedAt, now)}</time>}
           </span>
         </button>
+        {deleteButton(doc, `snippet @${snippet.name}`)}
         {expanded && (
           <ul id={childrenId} className="doc-list">
             {children.map((child) => snippetItem(child, depth + 1))}
@@ -187,23 +200,21 @@ export function Sidebar({
       onPointerEnter={peek?.onPointerEnter}
       onPointerLeave={peek?.onPointerLeave}
     >
+      {/* The toggle sits where the top bar's show-sidebar button does, so opening and closing is one spot. */}
       <div className="sidebar-head">
-        <span className="wordmark">Zenpad</span>
         {peek ? (
           <button className="icon-button" onClick={peek.onPin} aria-label="Keep sidebar open" title={`Keep sidebar open  ${MOD_LABEL} \\`}>
             <Icon name="sidebar" />
           </button>
         ) : (
-          <button className="icon-button" onClick={onClose} aria-label="Hide sidebar" title={`Hide sidebar  ${MOD_LABEL} \\`}>
+          <button className="icon-button" onClick={(event) => onClose(event.detail > 0)} aria-label="Hide sidebar" title={`Hide sidebar  ${MOD_LABEL} \\`}>
             <Icon name="sidebar" />
           </button>
         )}
+        <button className="icon-button" onClick={onNewNote} aria-label="New note" title={`New note  ${MOD_LABEL} ⌥ N`}>
+          <Icon name="compose" />
+        </button>
       </div>
-
-      <button className="new-note-button" onClick={onNewNote} title={`New note  ${MOD_LABEL} ⌥ N`}>
-        <Icon name="plus" size={16} />
-        <span>New note</span>
-      </button>
 
       <button className="search-trigger" onClick={onSearch}>
         <Icon name="search" size={16} />
@@ -281,7 +292,7 @@ export function Sidebar({
       </div>
 
       {/* The right-hand border doubles as a hide control. Keyboard users have the button in the header. */}
-      <div className="sidebar-edge" onClick={onClose} title="Hide sidebar" aria-hidden="true" />
+      <div className="sidebar-edge" onClick={() => onClose()} title="Hide sidebar" aria-hidden="true" />
     </aside>
   )
 }

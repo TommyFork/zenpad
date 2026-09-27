@@ -90,3 +90,25 @@ test('shows where a snippet is used and maps it', async ({ page }) => {
   await expect(page.locator('.cm-content')).toContainText('Welcome to Zenpad')
   expect(errors).toEqual([])
 })
+
+test('deletes a snippet from the sidebar without leaving the open note', async ({ page }) => {
+  const errors = watchForErrors(page)
+  await page.goto('/')
+  const editor = page.locator('.cm-content')
+  await expect(editor).toContainText('Welcome to Zenpad')
+
+  const snippet = page.locator('.snippet-item', { hasText: '@tone' })
+  await snippet.hover()
+  await page.getByRole('button', { name: 'Delete snippet @tone' }).click()
+  const dialog = page.getByRole('alertdialog', { name: 'Delete @tone?' })
+  await expect(dialog).toContainText('uses it')
+  await dialog.getByRole('button', { name: 'Delete' }).click()
+
+  await expect(snippet).toHaveCount(0)
+  await expect(editor).toContainText('Welcome to Zenpad')
+
+  await page.getByRole('button', { name: 'Undo' }).click()
+  await expect(snippet).toHaveCount(1)
+  await expect(editor).toContainText('Welcome to Zenpad')
+  expect(errors).toEqual([])
+})

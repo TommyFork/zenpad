@@ -316,16 +316,14 @@ kbd {
 /* While hidden, hovering the show-sidebar button slides the sidebar in over the page. */
 .sidebar.is-peek {
   position: fixed;
-  top: 8px;
-  bottom: 8px;
-  left: 8px;
+  top: 0;
+  bottom: 0;
+  left: 0;
   z-index: 35;
-  border: 1px solid var(--line-strong);
-  border-radius: 12px;
   box-shadow: var(--shadow-dialog);
   overflow: hidden;
   opacity: 0;
-  transform: translateX(calc(-100% - 16px));
+  transform: translateX(calc(-100% - 8px));
   transition:
     transform 0.26s var(--ease),
     opacity 0.2s var(--ease);
@@ -340,19 +338,19 @@ kbd {
   right: 0;
 }
 
+/* Mirrors the top bar (56px tall, 14px in) so the toggle sits exactly where the show-sidebar button does. */
 .sidebar-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 12px 10px 20px;
+  height: 56px;
+  padding: 0 12px 0 14px;
+  flex-shrink: 0;
 }
 
-.wordmark {
-  font-family: var(--serif-font);
-  font-size: 20px;
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  font-variation-settings: 'opsz' 36;
+/* The drawer sits flush left, and the narrow top bar has 8px of padding. */
+.is-narrow .sidebar-head {
+  padding-left: 8px;
 }
 
 .icon-button {
@@ -376,31 +374,6 @@ kbd {
   width: 26px;
   height: 26px;
   border-radius: 7px;
-}
-
-.new-note-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  margin: 0 12px 8px;
-  padding: 9px 12px;
-  border-radius: 9px;
-  font-weight: 600;
-  color: var(--bg);
-  background: var(--accent);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-  transition: background-color 0.15s, transform 0.1s;
-}
-
-@media (hover: hover) {
-  .new-note-button:hover {
-    background: var(--accent-ink);
-  }
-}
-
-.new-note-button:active {
-  transform: scale(0.98);
 }
 
 .search-trigger {
@@ -592,6 +565,71 @@ kbd {
 .snippet-item {
   padding: 6px 12px;
 }
+
+/* Sits over the right end of the row's first line and shows while the row is hovered or focused. */
+.doc-row {
+  position: relative;
+}
+
+.doc-delete {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  color: var(--muted);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s, color 0.15s, background-color 0.15s;
+}
+
+.snippet-node > .doc-delete {
+  top: 3px;
+}
+
+.doc-item:hover + .doc-delete,
+.doc-delete:hover,
+.doc-delete:focus-visible,
+.doc-item:focus-visible + .doc-delete {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.doc-delete:hover {
+  color: var(--ink);
+}
+
+@media (hover: hover) {
+  .doc-row:has(> .doc-delete:hover) > .doc-item {
+    background: var(--line);
+  }
+}
+
+/* The time would sit under the button, so it steps aside while the button shows and returns once it has faded out. */
+.doc-row > .doc-item .doc-time {
+  transition: visibility 0s 0.15s;
+}
+
+.doc-row:has(> .doc-item:hover, > .doc-item:focus-visible, > .doc-delete:hover, > .doc-delete:focus-visible) > .doc-item .doc-time {
+  visibility: hidden;
+  transition-delay: 0s;
+}
+
+/* Without hover, the button stays visible and the row leaves room for it. */
+@media (hover: none) {
+  .doc-delete {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .doc-row > .doc-item .doc-item-row {
+    padding-right: 26px;
+  }
+}
+
 
 .snippet-node {
   position: relative;
@@ -1041,117 +1079,16 @@ kbd {
   background: var(--line);
 }
 
-.page.is-previewing > .editor-host,
+.page.is-previewing > .editor-host:not(.preview-host),
 .page.is-previewing > .snippet-header {
   display: none;
 }
 
-.preview {
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 7vh 48px 0;
-  outline: none;
-  scrollbar-width: thin;
-  scrollbar-color: var(--line-strong) transparent;
-  animation: fade-in 0.2s var(--ease);
+.preview-host .cm-content {
+  caret-color: transparent;
 }
 
-.preview-inner {
-  max-width: var(--page-width);
-  margin: 0 auto;
-  padding-bottom: 45vh;
-}
-
-.preview-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-  margin-bottom: 24px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--line);
-}
-
-.preview-kicker {
-  font-size: 11.5px;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.preview-summary {
-  font-weight: 500;
-  letter-spacing: 0.02em;
-  text-transform: none;
-  font-size: 13px;
-}
-
-.preview-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 6px;
-  border-radius: 8px;
-  font-size: 13px;
-  color: var(--muted);
-  transition: color 0.15s;
-}
-
-@media (hover: hover) {
-  .preview-toggle:hover {
-    color: var(--ink);
-  }
-}
-
-.preview-toggle-track {
-  position: relative;
-  width: 26px;
-  height: 16px;
-  border-radius: 8px;
-  background: var(--line-strong);
-  transition: background-color 0.15s;
-}
-
-.preview-toggle-track::after {
-  content: '';
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--surface-raised);
-  box-shadow: 0 1px 2px var(--line-strong);
-  transition: transform 0.18s var(--ease);
-}
-
-.preview-toggle[aria-checked='true'] .preview-toggle-track {
-  background: var(--accent);
-}
-
-.preview-toggle[aria-checked='true'] .preview-toggle-track::after {
-  transform: translateX(10px);
-}
-
-.preview-body {
-  font-family: var(--editor-font);
-  font-size: var(--editor-size);
-  line-height: var(--editor-leading);
-  white-space: pre-wrap;
-  overflow-wrap: break-word;
-  color: var(--ink);
-}
-
-.preview-empty {
-  color: var(--faint);
-  font-style: italic;
-}
-
-.has-highlights .preview-snippet {
+.preview-host.has-highlights .cm-preview-snippet {
   border-radius: 4px;
   background: var(--accent-wash);
   box-shadow: 0 0 0 2px var(--accent-wash);
@@ -1161,37 +1098,10 @@ kbd {
 }
 
 @media (hover: hover) {
-  .has-highlights .preview-snippet:hover:not(:has(.preview-snippet:hover)) {
+  .preview-host.has-highlights .cm-preview-snippet:hover:not(:has(.cm-preview-snippet:hover)) {
     background: var(--accent-wash-strong);
     box-shadow: 0 0 0 2px var(--accent-wash-strong);
   }
-}
-
-.preview-chip {
-  border-radius: 5px;
-}
-
-.has-highlights .preview-chip {
-  padding: 0.08em 0.28em;
-  font-family: var(--ui-font);
-  font-size: 0.84em;
-  font-weight: 550;
-  white-space: nowrap;
-}
-
-.has-highlights .preview-chip.is-unresolved {
-  color: var(--muted);
-  box-shadow: inset 0 0 0 1px var(--line-strong);
-}
-
-.has-highlights .preview-chip.is-empty {
-  color: var(--accent-ink);
-  box-shadow: inset 0 0 0 1px var(--accent-wash-strong);
-}
-
-/* Empty snippets copy as nothing, so without highlights they disappear too. */
-.preview-body:not(.has-highlights) .preview-chip.is-empty {
-  display: none;
 }
 
 .statusbar {
@@ -1996,8 +1906,7 @@ kbd {
     display: none;
   }
 
-  .editor-host .cm-scroller,
-  .preview {
+  .editor-host .cm-scroller {
     padding: 3vh 16px 0;
   }
 

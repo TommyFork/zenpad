@@ -59,6 +59,39 @@ export function expandSnippetParts(
   return parts
 }
 
+// Where each snippet landed in the expanded text. Empty snippets are zero-length spans.
+export interface ExpansionSpan {
+  from: number
+  to: number
+  name: string
+  kind: 'snippet' | 'empty' | 'unresolved'
+}
+
+// Joins expansion parts back into the expanded text, keeping the ranges each snippet filled.
+// Outer snippets come before the snippets nested inside them.
+export function flattenExpansion(parts: ExpansionPart[]): { text: string; spans: ExpansionSpan[] } {
+  let text = ''
+  const spans: ExpansionSpan[] = []
+  const walk = (list: ExpansionPart[]) => {
+    for (const part of list) {
+      if (part.kind === 'text') {
+        text += part.text
+      } else if (part.kind === 'unresolved') {
+        spans.push({ from: text.length, to: text.length + part.name.length + 1, name: part.name, kind: 'unresolved' })
+        text += `@${part.name}`
+      } else {
+        const span: ExpansionSpan = { from: text.length, to: text.length, name: part.name, kind: 'snippet' }
+        spans.push(span)
+        walk(part.parts)
+        span.to = text.length
+        if (span.from === span.to) span.kind = 'empty'
+      }
+    }
+  }
+  walk(parts)
+  return { text, spans }
+}
+
 export function referencedSnippetNames(text: string): string[] {
   const names = [...text.matchAll(snippetTokenPattern())].map((match) => match[1])
   return [...new Set(names)]
