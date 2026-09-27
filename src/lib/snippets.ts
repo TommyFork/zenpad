@@ -229,3 +229,21 @@ export function describeUses(noteUses: number, snippetUses: number): string {
   const parts = [noteUses > 0 ? plural(noteUses, 'note') : '', snippetUses > 0 ? plural(snippetUses, 'snippet') : '']
   return parts.filter(Boolean).join(' and ')
 }
+
+export interface SnippetUsers<N, S> {
+  notes: N[]
+  snippets: S[]
+}
+
+// The notes and other snippets that mention a snippet directly, in the order they were given.
+export function snippetUsers<N extends { body: string }, S extends { name: string; body: string }>(
+  name: string,
+  notes: readonly N[],
+  snippets: readonly S[],
+): SnippetUsers<N, S> {
+  const uses = (body: string) => referencedSnippetNames(body).includes(name)
+  return {
+    notes: notes.filter((note) => uses(note.body)),
+    snippets: snippets.filter((snippet) => snippet.name !== name && uses(snippet.body)),
+  }
+}
