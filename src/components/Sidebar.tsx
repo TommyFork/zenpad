@@ -199,9 +199,8 @@ export function Sidebar({
             <Icon name="sidebar" />
           </button>
         )}
-        <button className="new-note-button" onClick={onNewNote} title={`New note  ${MOD_LABEL} ⌥ N`}>
-          <Icon name="plus" size={16} />
-          <span>New note</span>
+        <button className="icon-button" onClick={onNewNote} aria-label="New note" title={`New note  ${MOD_LABEL} ⌥ N`}>
+          <Icon name="compose" />
         </button>
       </div>
 
