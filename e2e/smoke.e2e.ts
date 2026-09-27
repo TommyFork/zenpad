@@ -44,6 +44,19 @@ test('keeps what you write after a reload', async ({ page }) => {
   await expect(page.locator('.cm-content')).toContainText('Saved by the smoke test')
 })
 
+test('opens a snippet by clicking its hover preview in a note', async ({ page }) => {
+  const errors = watchForErrors(page)
+  await page.goto('/')
+  await expect(page.locator('.cm-content')).toContainText('Welcome to Zenpad')
+
+  await page.locator('.cm-snippet', { hasText: '@tone' }).first().hover()
+  const card = page.locator('.cm-snippet-tooltip')
+  await expect(card).toContainText('Click to open')
+  await card.click()
+  await expect(page.getByRole('list', { name: 'Used in' })).toContainText('Welcome to Zenpad')
+  expect(errors).toEqual([])
+})
+
 test('loads offline once the service worker is installed', async ({ page, context }) => {
   await page.goto('/')
   await expect(page.locator('.cm-content')).toContainText('Welcome to Zenpad')
@@ -74,6 +87,23 @@ test('shows where a snippet is used and maps it', async ({ page }) => {
   await page.locator('.snippet-item', { hasText: '@tone' }).click()
   const usedIn = page.getByRole('list', { name: 'Used in' })
   await expect(usedIn).toContainText('Welcome to Zenpad')
+
+  await usedIn.getByRole('button', { name: /Welcome to Zenpad/ }).hover()
+  const peek = page.getByRole('tooltip')
+  await expect(peek).toContainText('@tone')
+  await expect(peek.locator('mark')).toHaveText('@tone')
+  await page.mouse.move(0, 0)
+  await expect(peek).toBeHidden()
+
+  // The card stays open while the pointer is over it, and clicking it opens the note.
+  await usedIn.getByRole('button', { name: /Welcome to Zenpad/ }).hover()
+  await peek.hover()
+  await page.waitForTimeout(400)
+  await expect(peek).toBeVisible()
+  await peek.click()
+  await expect(peek).toBeHidden()
+  await expect(page.locator('.cm-content')).toContainText('Welcome to Zenpad')
+  await page.locator('.snippet-item', { hasText: '@tone' }).click()
 
   await page.getByRole('button', { name: 'Map', exact: true }).click()
   const map = page.getByRole('dialog', { name: 'Snippet map' })
