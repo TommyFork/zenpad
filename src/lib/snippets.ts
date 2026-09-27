@@ -247,3 +247,25 @@ export function snippetUsers<N extends { body: string }, S extends { name: strin
     snippets: snippets.filter((snippet) => snippet.name !== name && uses(snippet.body)),
   }
 }
+
+export interface ReferenceExcerpt {
+  before: string
+  after: string
+  // How many times the text mentions the snippet in total.
+  count: number
+}
+
+// The text around the first mention of a snippet, clipped to whole words, for a hover preview.
+export function referenceExcerpt(text: string, name: string, radius = 140): ReferenceExcerpt | null {
+  const matches = [...text.matchAll(snippetTokenPattern())].filter((match) => match[1] === name)
+  const [first] = matches
+  if (!first) return null
+  const start = first.index
+  const end = start + first[0].length
+  let before = text.slice(Math.max(0, start - radius), start)
+  let after = text.slice(end, end + radius)
+  if (start > radius) before = `…${before.replace(/^\S*\s+/, '').trimStart()}`
+  if (end + radius < text.length) after = `${after.replace(/\s+\S*$/, '').trimEnd()}…`
+  const tidy = (part: string) => part.replace(/\n{3,}/g, '\n\n')
+  return { before: tidy(before).replace(/^\s+/, ''), after: tidy(after).replace(/\s+$/, ''), count: matches.length }
+}

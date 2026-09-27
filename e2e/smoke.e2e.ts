@@ -75,6 +75,13 @@ test('shows where a snippet is used and maps it', async ({ page }) => {
   const usedIn = page.getByRole('list', { name: 'Used in' })
   await expect(usedIn).toContainText('Welcome to Zenpad')
 
+  await usedIn.getByRole('button', { name: /Welcome to Zenpad/ }).hover()
+  const peek = page.getByRole('tooltip')
+  await expect(peek).toContainText('@tone')
+  await expect(peek.locator('mark')).toHaveText('@tone')
+  await page.mouse.move(0, 0)
+  await expect(peek).toBeHidden()
+
   await page.getByRole('button', { name: 'Map', exact: true }).click()
   const map = page.getByRole('dialog', { name: 'Snippet map' })
   await expect(map.getByRole('button', { name: /^Open @tone/ })).toBeVisible()
