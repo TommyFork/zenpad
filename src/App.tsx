@@ -109,6 +109,8 @@ export default function App() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [peeking, setPeeking] = useState(false)
   const peekTimer = useRef<number | undefined>(undefined)
+  // Set after the sidebar is hidden with a click, so the show button appearing under the pointer doesn't slide it straight back in.
+  const peekHeld = useRef(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [mapOpen, setMapOpen] = useState(false)
@@ -162,6 +164,7 @@ export default function App() {
 
   // Hovering the show-sidebar button slides the sidebar in; it slides away shortly after the pointer leaves both.
   const startPeek = useCallback(() => {
+    if (peekHeld.current) return
     window.clearTimeout(peekTimer.current)
     setPeeking(true)
   }, [])
@@ -172,6 +175,10 @@ export default function App() {
   }, [])
 
   useEffect(() => () => window.clearTimeout(peekTimer.current), [])
+
+  useEffect(() => {
+    if (sidebarVisible) peekHeld.current = false
+  }, [sidebarVisible])
 
   const closePalette = useCallback(() => {
     setPaletteOpen(false)
@@ -367,6 +374,12 @@ export default function App() {
       shortcut: `${MOD_LABEL} E`,
       run: togglePreview,
     },
+    {
+      id: 'preview-highlights',
+      label: settings.previewHighlights ? 'Preview: Hide snippet highlights' : 'Preview: Highlight snippets',
+      icon: 'eye',
+      run: () => updateSettings({ previewHighlights: !settings.previewHighlights }),
+    },
     ...(openNote
       ? [{ id: 'favorite', label: openNote.favorite ? 'Remove from favorites' : 'Add to favorites', icon: 'star' as const, run: toggleFavorite }]
       : []),
@@ -458,7 +471,13 @@ export default function App() {
     <div className={classes.filter(Boolean).join(' ')}>
       {sidebarVisible && isNarrow && <div className="drawer-backdrop" onClick={() => setDrawerOpen(false)} />}
       {sidebarVisible ? (
-        <Sidebar {...sidebarProps} onClose={() => setSidebar(false)} />
+        <Sidebar
+          {...sidebarProps}
+          onClose={(byPointer) => {
+            setSidebar(false)
+            peekHeld.current = byPointer === true
+          }}
+        />
       ) : (
         !isNarrow && (
           <Sidebar
@@ -490,7 +509,10 @@ export default function App() {
           favorite={openNote ? openNote.favorite === true : undefined}
           onShowSidebar={() => setSidebar(true)}
           onPeekSidebar={startPeek}
-          onEndPeek={endPeek}
+          onEndPeek={() => {
+            peekHeld.current = false
+            endPeek()
+          }}
           onReturn={() => workspace.returnTo && open(workspace.returnTo)}
           onTogglePreview={togglePreview}
           onCopy={() => void workspace.copyCurrent()}
@@ -528,7 +550,6 @@ export default function App() {
               text={text}
               snippets={snippetBodies}
               highlights={settings.previewHighlights}
-              onToggleHighlights={() => updateSettings({ previewHighlights: !settings.previewHighlights })}
               onOpenSnippet={(name) => void workspace.openSnippetByName(name)}
               onExit={exitPreview}
             />

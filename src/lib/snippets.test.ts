@@ -5,6 +5,7 @@ import {
   describeExpansion,
   describeUses,
   extractToSnippet,
+  flattenExpansion,
   expandSnippetParts,
   expandSnippets,
   type ExpansionPart,
@@ -55,6 +56,28 @@ describe('expandSnippets', () => {
 
   it('does not treat a trailing dash as part of the name', () => {
     expect(expandSnippets('@tone- next', bodies)).toBe('Be concise.- next')
+  })
+})
+
+describe('flattenExpansion', () => {
+  const withEmpty = new Map([...bodies, ['blank', '']])
+
+  it('produces the same text as expandSnippets', () => {
+    for (const text of ['Hi. @tone', '@context', 'Ask @nobody', '@loop-a', 'a @blank b']) {
+      expect(flattenExpansion(expandSnippetParts(text, withEmpty)).text).toBe(expandSnippets(text, withEmpty))
+    }
+  })
+
+  it('records where each snippet was filled in, outer before inner', () => {
+    expect(flattenExpansion(expandSnippetParts('Go: @context @blank @nobody', withEmpty))).toEqual({
+      text: 'Go: Repo: zenpad. Be concise.  @nobody',
+      spans: [
+        { from: 4, to: 29, name: 'context', kind: 'snippet' },
+        { from: 18, to: 29, name: 'tone', kind: 'snippet' },
+        { from: 30, to: 30, name: 'blank', kind: 'empty' },
+        { from: 31, to: 38, name: 'nobody', kind: 'unresolved' },
+      ],
+    })
   })
 })
 
