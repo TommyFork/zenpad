@@ -41,6 +41,9 @@ test('keeps what you write after a reload', async ({ page }) => {
   // Wait out the autosave delay before reloading.
   await page.waitForTimeout(1000)
   await page.reload()
+  // The editor only renders lines near the viewport, so bring the end of the note into view.
+  await page.locator('.cm-content').click()
+  await page.keyboard.press('ControlOrMeta+End')
   await expect(page.locator('.cm-content')).toContainText('Saved by the smoke test')
 })
 
