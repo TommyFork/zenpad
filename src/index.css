@@ -24,6 +24,9 @@
   --highlight: rgba(222, 178, 80, 0.3);
   --highlight-strong: rgba(222, 178, 80, 0.55);
   --code-ink: #7a5236;
+  --variable-ink: #8a5a1c;
+  --variable-wash: rgba(222, 178, 80, 0.16);
+  --variable-wash-strong: rgba(222, 178, 80, 0.45);
   --danger: #b0493b;
   --toast-bg: #2a2824;
   --toast-ink: #f4f1ea;
@@ -67,6 +70,9 @@
     --highlight: rgba(222, 178, 80, 0.22);
     --highlight-strong: rgba(222, 178, 80, 0.42);
     --code-ink: #e0b48f;
+    --variable-ink: #e6c07a;
+    --variable-wash: rgba(222, 178, 80, 0.14);
+    --variable-wash-strong: rgba(222, 178, 80, 0.36);
     --danger: #e0806f;
     --toast-bg: #e7e3db;
     --toast-ink: #1a1918;
@@ -98,6 +104,9 @@
   --highlight: rgba(222, 178, 80, 0.22);
   --highlight-strong: rgba(222, 178, 80, 0.42);
   --code-ink: #e0b48f;
+  --variable-ink: #e6c07a;
+  --variable-wash: rgba(222, 178, 80, 0.14);
+  --variable-wash-strong: rgba(222, 178, 80, 0.36);
   --danger: #e0806f;
   --toast-bg: #e7e3db;
   --toast-ink: #1a1918;
@@ -1102,6 +1111,14 @@ kbd {
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
   transition: background-color 0.15s, box-shadow 0.15s;
+}
+
+.preview-host.has-highlights .cm-preview-variable {
+  border-radius: 4px;
+  background: var(--variable-wash);
+  box-shadow: 0 0 0 2px var(--variable-wash);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
 
 @media (hover: hover) {

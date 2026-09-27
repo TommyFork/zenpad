@@ -44,6 +44,31 @@ const zenTheme = EditorView.theme({
     backgroundColor: 'transparent',
     boxShadow: 'inset 0 0 0 1px var(--line-strong)',
   },
+  '.cm-variable': {
+    color: 'var(--variable-ink)',
+    backgroundColor: 'var(--variable-wash)',
+    borderRadius: '5px',
+    padding: '0.08em 0.28em',
+    margin: '0 -0.04em',
+    fontFamily: 'var(--mono-font)',
+    fontSize: '0.8em',
+    fontWeight: '550',
+    whiteSpace: 'nowrap',
+  },
+  '.cm-variable-def': { backgroundColor: 'transparent', boxShadow: 'inset 0 0 0 1px var(--variable-wash-strong)' },
+  // Definitions aren't copied, so they read as settings rather than prose.
+  '.cm-line.cm-variable-line': {
+    color: 'var(--ink-soft)',
+    fontFamily: 'var(--mono-font)',
+    fontSize: '0.8em',
+    paddingLeft: '10px',
+    boxShadow: 'inset 2px 0 0 var(--variable-wash-strong)',
+  },
+  '.cm-line.cm-variable-line .cm-variable': { fontSize: '1em' },
+  // An inline definition shows its value in place, underlined so it reads as the value being set.
+  '.cm-variable-brace': { color: 'var(--faint)', fontFamily: 'var(--mono-font)', fontSize: '0.8em' },
+  '.cm-variable-value': { textDecoration: 'underline 1.5px var(--variable-wash-strong)', textUnderlineOffset: '0.2em' },
+  '.cm-snippet-tooltip-name.cm-variable-tooltip-name': { color: 'var(--variable-ink)', fontFamily: 'var(--mono-font)' },
   '.cm-tooltip': {
     border: '1px solid var(--line)',
     backgroundColor: 'var(--surface-raised)',
@@ -73,6 +98,7 @@ const zenTheme = EditorView.theme({
     backgroundColor: 'var(--accent-wash)',
     color: 'var(--ink)',
   },
+  '.cm-completion-variable .cm-completionLabel': { color: 'var(--variable-ink)', fontFamily: 'var(--mono-font)' },
   '.cm-completionLabel': { fontWeight: '550', color: 'var(--accent-ink)', flexShrink: '0' },
   '.cm-completionMatchedText': { textDecoration: 'none', color: 'var(--ink)' },
   '.cm-completionDetail': {
