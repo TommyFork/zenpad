@@ -792,9 +792,15 @@ kbd {
   padding: 7vh 48px 0;
 }
 
+.snippet-kicker-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
 .snippet-kicker {
   display: block;
-  margin-bottom: 6px;
   font-size: 11.5px;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -848,6 +854,83 @@ kbd {
   font-size: 13.5px;
   line-height: 1.5;
   color: var(--muted);
+}
+
+.snippet-header:has(.used-in) .snippet-meta {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.map-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  margin-right: -8px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--muted);
+  transition: background-color 0.15s, color 0.15s;
+}
+
+@media (hover: hover) {
+  .map-link:hover {
+    background: var(--line);
+    color: var(--ink);
+  }
+}
+
+.used-in {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding: 0 0 20px;
+  list-style: none;
+  border-bottom: 1px solid var(--line);
+}
+
+.used-in-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 260px;
+  padding: 4px 10px 4px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.used-in-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.used-in-item svg {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+.used-in-item.is-snippet {
+  color: var(--accent-ink);
+}
+
+.used-in-item.is-more {
+  padding: 4px 10px;
+  border-style: dashed;
+  color: var(--muted);
+}
+
+@media (hover: hover) {
+  .used-in-item:hover {
+    background: var(--accent-wash);
+    border-color: transparent;
+    color: var(--accent-ink);
+  }
 }
 
 .page[data-kind='snippet'] .cm-scroller {
@@ -1580,6 +1663,244 @@ kbd {
   }
 }
 
+/* Snippet map */
+
+.map-overlay {
+  padding: 5vh 16px;
+  align-items: stretch;
+}
+
+.snippet-map {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1100px;
+  overflow: hidden;
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow-dialog);
+  animation: rise-in 0.22s var(--ease);
+}
+
+.map-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 14px 12px 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.map-head h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.map-caption {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.map-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.map-canvas {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: var(--surface);
+}
+
+.map-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+
+.map-svg:active {
+  cursor: grabbing;
+}
+
+.map-edge {
+  stroke: var(--line-strong);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+  transition: opacity 0.2s, stroke 0.2s;
+}
+
+.map-edge.is-lit {
+  stroke: var(--accent);
+  stroke-width: 1.8;
+}
+
+.has-focus .map-edge:not(.is-lit) {
+  opacity: 0.25;
+}
+
+.map-node {
+  cursor: pointer;
+  outline: none;
+  transition: opacity 0.2s;
+}
+
+.has-focus .map-node:not(.is-lit) {
+  opacity: 0.25;
+}
+
+.map-dot {
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+  transition: fill 0.15s, stroke 0.15s;
+}
+
+.map-node.is-snippet .map-dot {
+  fill: color-mix(in srgb, var(--accent) 22%, var(--surface-raised));
+  stroke: var(--accent);
+}
+
+.map-node.is-note .map-dot {
+  fill: var(--surface-raised);
+  stroke: var(--muted);
+}
+
+.map-node.is-active .map-dot {
+  fill: var(--accent);
+  stroke: var(--accent);
+}
+
+.map-node.is-note.is-active .map-dot {
+  fill: var(--muted);
+  stroke: var(--muted);
+}
+
+.map-node:focus-visible .map-dot {
+  stroke-width: 3;
+}
+
+.map-ring {
+  fill: none;
+  stroke: var(--highlight-strong);
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.map-label {
+  font-family: var(--ui-font);
+  font-size: 12px;
+  fill: var(--ink-soft);
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+
+.map-node.is-snippet .map-label {
+  font-weight: 550;
+  fill: var(--accent-ink);
+}
+
+.map-node.is-note .map-label {
+  font-size: 11.5px;
+  fill: var(--muted);
+}
+
+.map-node.is-active .map-label {
+  fill: var(--ink);
+}
+
+.map-legend {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  display: flex;
+  gap: 14px;
+  font-size: 12px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.map-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.map-legend i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 1.5px solid;
+}
+
+.legend-snippet {
+  border-color: var(--accent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 22%, var(--surface-raised));
+}
+
+.legend-note {
+  border-color: var(--muted);
+  border-radius: 2px;
+  background: var(--surface-raised);
+}
+
+.map-zoom {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: var(--shadow-pop);
+}
+
+.map-detail {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 12px;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.map-detail strong {
+  margin-right: 6px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.map-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  margin: 0;
+  padding: 24px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
 /* Narrow screens */
 
 .is-narrow .sidebar {
@@ -1643,6 +1964,23 @@ kbd {
 
   .overlay {
     padding-top: 8vh;
+  }
+
+  .map-overlay {
+    padding: 0;
+  }
+
+  .snippet-map {
+    border-radius: 0;
+    border: 0;
+  }
+
+  .map-head {
+    padding-left: 16px;
+  }
+
+  .map-detail {
+    white-space: normal;
   }
 }
 
