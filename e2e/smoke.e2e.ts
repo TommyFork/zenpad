@@ -44,6 +44,19 @@ test('keeps what you write after a reload', async ({ page }) => {
   await expect(page.locator('.cm-content')).toContainText('Saved by the smoke test')
 })
 
+test('opens a snippet by clicking its hover preview in a note', async ({ page }) => {
+  const errors = watchForErrors(page)
+  await page.goto('/')
+  await expect(page.locator('.cm-content')).toContainText('Welcome to Zenpad')
+
+  await page.locator('.cm-snippet', { hasText: '@tone' }).first().hover()
+  const card = page.locator('.cm-snippet-tooltip')
+  await expect(card).toContainText('Click to open')
+  await card.click()
+  await expect(page.getByRole('list', { name: 'Used in' })).toContainText('Welcome to Zenpad')
+  expect(errors).toEqual([])
+})
+
 test('loads offline once the service worker is installed', async ({ page, context }) => {
   await page.goto('/')
   await expect(page.locator('.cm-content')).toContainText('Welcome to Zenpad')

@@ -44,7 +44,7 @@ export function snippetNameAt(view: EditorView, pos: number): string | null {
   return null
 }
 
-function tooltipBody(name: string, body: string | undefined): HTMLElement {
+function tooltipBody(name: string, body: string | undefined, onOpenSnippet: (name: string) => void): HTMLElement {
   const container = document.createElement('div')
   container.className = 'cm-snippet-tooltip'
 
@@ -66,20 +66,25 @@ function tooltipBody(name: string, body: string | undefined): HTMLElement {
 
   const hint = document.createElement('div')
   hint.className = 'cm-snippet-tooltip-hint'
-  hint.textContent = body === undefined ? '⌘ click to create it' : '⌘ click to open'
+  hint.textContent = body === undefined ? 'Click to create it' : 'Click to open'
   container.append(hint)
+
+  container.addEventListener('click', () => {
+    // Selecting text in the card shouldn't navigate away.
+    if (window.getSelection()?.toString()) return
+    onOpenSnippet(name)
+  })
 
   return container
 }
 
-const chipTooltip = hoverTooltip((view, pos) => {
-  const name = snippetNameAt(view, pos)
-  if (!name) return null
-  const body = view.state.field(snippetBodiesField).get(name)
-  return { pos, above: true, create: () => ({ dom: tooltipBody(name, body) }) }
-})
-
 export function snippetChips(onOpenSnippet: (name: string) => void) {
+  const chipTooltip = hoverTooltip((view, pos) => {
+    const name = snippetNameAt(view, pos)
+    if (!name) return null
+    const body = view.state.field(snippetBodiesField).get(name)
+    return { pos, above: true, create: () => ({ dom: tooltipBody(name, body, onOpenSnippet) }) }
+  })
   const openOnModClick = EditorView.domEventHandlers({
     mousedown(event, view) {
       if (!(event.metaKey || event.ctrlKey)) return false

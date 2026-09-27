@@ -36,7 +36,7 @@ On Windows and Linux, use `Ctrl` in place of `⌘`.
 
 - Names use lowercase letters, numbers, dashes, and underscores: `@repo-context`, `@style_guide`.
 - An `@` right after a letter or number is ignored, so email addresses like `me@site.com` are left alone.
-- Chips show a snippet's state. Filled chips are linked, outlined chips are empty, and gray outlined chips don't match any snippet yet. Hover a chip to preview it.
+- Chips show a snippet's state. Filled chips are linked, outlined chips are empty, and gray outlined chips don't match any snippet yet. Hover a chip to preview it, and click the preview to open the snippet.
 - Renaming a snippet updates every `@reference` in your notes and snippets.
 - The token count in the status bar is an estimate (about 4 characters per token) of the text you would copy, with snippets filled in.
 
