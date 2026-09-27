@@ -261,11 +261,24 @@ kbd {
   right: 0;
 }
 
+/* The toggle lines up with the top bar's show-sidebar button (12px down, 14px in) so it never moves. */
 .sidebar-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 14px 12px 10px 20px;
+  gap: 6px;
+  padding: 12px 12px 12px 14px;
+}
+
+/* The peek panel is inset 8px and has a 1px border. */
+.sidebar.is-peek .sidebar-head {
+  padding-top: 3px;
+  padding-left: 5px;
+  margin-bottom: 9px;
+}
+
+/* The drawer sits flush left, and the narrow top bar has 8px of padding. */
+.is-narrow .sidebar-head {
+  padding-left: 8px;
 }
 
 .wordmark {
