@@ -83,3 +83,24 @@ test('shows where a snippet is used and maps it', async ({ page }) => {
   await expect(page.locator('.cm-content')).toContainText('Welcome to Zenpad')
   expect(errors).toEqual([])
 })
+
+test('fills in note variables and jumps to where one is set', async ({ page }) => {
+  const errors = watchForErrors(page)
+  await page.goto('/')
+  await expect(page.locator('.cm-content')).toContainText('Welcome to Zenpad')
+
+  await page.locator('.new-note-button').click()
+  await page.locator('.cm-content').click()
+  await page.keyboard.insertText('$branch = fix/login\n\nCheckout $branch, then rebase $branch.')
+  await expect(page.locator('.cm-variable', { hasText: '$branch' })).toHaveCount(3)
+
+  // ⌘ click selects the value, so typing replaces it everywhere.
+  await page.locator('.cm-variable', { hasText: '$branch' }).last().click({ modifiers: ['ControlOrMeta'] })
+  await page.keyboard.type('feat/signup')
+
+  await page.keyboard.press('ControlOrMeta+KeyE')
+  const preview = page.locator('.preview-body')
+  await expect(preview).toHaveText('Checkout feat/signup, then rebase feat/signup.')
+  await expect(page.locator('.preview-summary')).toHaveText('1 variable filled in')
+  expect(errors).toEqual([])
+})

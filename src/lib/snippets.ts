@@ -37,6 +37,8 @@ export type ExpansionPart =
   | { kind: 'snippet'; name: string; parts: ExpansionPart[] }
   // A reference left as written: no snippet has this name, or expanding it would loop.
   | { kind: 'unresolved'; name: string; reason: 'missing' | 'loop' }
+  // A note $variable filled in with its value. Only added by fillInParts in variables.ts.
+  | { kind: 'variable'; name: string; text: string }
 
 // The same expansion as expandSnippets, but keeping track of which text came from which snippet.
 export function expandSnippetParts(
@@ -79,13 +81,14 @@ function listNames(names: string[]): string {
 }
 
 // A short, human summary of what copying this text will do with its snippets.
-export function describeExpansion(text: string, bodies: ReadonlyMap<string, string>): string {
+export function describeExpansion(text: string, bodies: ReadonlyMap<string, string>, variables = 0): string {
   const names = referencedSnippetNames(text)
   const missing = names.filter((name) => !bodies.has(name))
   const empty = names.filter((name) => bodies.get(name)?.trim() === '')
   const filled = names.length - missing.length - empty.length
 
-  const parts = [filled > 0 ? `Copied with ${filled} ${filled === 1 ? 'snippet' : 'snippets'} filled in.` : 'Copied.']
+  const filledIn = [filled > 0 ? plural(filled, 'snippet') : '', variables > 0 ? plural(variables, 'variable') : ''].filter(Boolean)
+  const parts = [filledIn.length > 0 ? `Copied with ${filledIn.join(' and ')} filled in.` : 'Copied.']
   if (empty.length > 0) parts.push(`${listNames(empty)} ${empty.length === 1 ? 'is' : 'are'} empty.`)
   if (missing.length > 0) parts.push(`${listNames(missing)} ${missing.length === 1 ? "isn't a snippet" : "aren't snippets"} yet.`)
   return parts.join(' ')

@@ -11,6 +11,7 @@ Zenpad was built for writing AI prompts, but it works for any writing where you 
 - **Copy with snippets filled in.** `⌘ Enter` copies the note with every `@snippet` replaced by its full text. Snippets can contain other snippets, and loops are detected.
 - **Preview with snippets filled in.** `⌘ E` shows the note as it will be copied, with every snippet filled in. Filled-in text is tinted so you can see where each snippet starts and ends, and you can turn the tint off for a clean read. `Esc` goes back to editing.
 - **See where snippets are used.** A snippet's page lists every note and snippet that uses it, one click away. The **snippet map** draws all your snippets and the notes that use them as an interactive graph: hover to trace connections, click to open, drag to rearrange, and scroll to zoom. Open it from the Snippets section, a snippet's page, or `⌘ K`.
+- **Note variables.** Set a value once at the top of a note, like `$branch = fix/login-redirect`, and use `$branch` anywhere in it. Change the value and every use follows. Variables are filled in when you copy or preview, and snippets can use them too, so one `@review-pr` snippet can fill in each note's own `$pr` and `$branch`.
 - **Favorites.** Star a note to pin it to a Favorites section at the top of the sidebar. The Favorites, Notes, and Snippets sections each collapse, and Zenpad remembers which ones you closed.
 - **Search and commands.** `⌘ K` searches every note and snippet and runs every command.
 - **Private by design.** No server, no accounts, no analytics. Notes live in your browser's IndexedDB.
@@ -27,6 +28,7 @@ Zenpad was built for writing AI prompts, but it works for any writing where you 
 | `⌘ \` | Show or hide the sidebar |
 | `⌘ ⌥ N` | New note |
 | `⌘ click` on an `@snippet` | Open it, or create it if it doesn't exist (also works on filled-in text in preview) |
+| `⌘ click` on a `$variable` | Jump to its value, selected so you can type a new one |
 | `⌘ F` | Find in the current note |
 
 On Windows and Linux, use `Ctrl` in place of `⌘`.
@@ -38,6 +40,15 @@ On Windows and Linux, use `Ctrl` in place of `⌘`.
 - Chips show a snippet's state. Filled chips are linked, outlined chips are empty, and gray outlined chips don't match any snippet yet. Hover a chip to preview it.
 - Renaming a snippet updates every `@reference` in your notes and snippets.
 - The token count in the status bar is an estimate (about 4 characters per token) of the text you would copy, with snippets filled in.
+
+## How variables work
+
+- Define a variable on a line of its own: `$name = value`. Names follow the snippet rules but start with a letter, so prices like `$5` are left alone.
+- Use it anywhere in the note as `$name`. Only names the note defines are filled in, so text like `$HOME` stays as written.
+- Definition lines are left out when you copy or preview, and out of the note's title in the sidebar.
+- A value can use other variables and snippets: `$url = https://github.com/acme/web/pull/$pr`.
+- Snippets can use variables too. A snippet's `$pr` is filled in from the note it is copied from.
+- Type `$` to pick a variable, hover one to see its value, and `⌘ click` one to change it.
 
 ## Your data
 

@@ -1,9 +1,15 @@
+import { isVariableDefinition, parseVariables, resolveVariables, substituteVariables } from './variables'
+
 const TITLE_LENGTH = 80
 const PREVIEW_LENGTH = 120
 
 function meaningfulLines(body: string): string[] {
+  // Variable definitions usually sit at the top of a note, but they aren't what it's about.
+  const values = resolveVariables(parseVariables(body))
   return body
     .split('\n')
+    .filter((line) => !isVariableDefinition(line))
+    .map((line) => substituteVariables(line, values))
     .map((line) => line.replace(/^\s*(#{1,6}\s+|[-*>]\s+)/, '').trim())
     .filter((line) => line.length > 0)
 }

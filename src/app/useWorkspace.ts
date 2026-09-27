@@ -14,7 +14,8 @@ import {
   uniqueSnippetName,
 } from '../lib/library'
 import { readLastOpened, writeLastOpened } from '../lib/settings'
-import { describeExpansion, expandSnippets, isValidSnippetName, toSnippetName } from '../lib/snippets'
+import { isValidSnippetName, toSnippetName } from '../lib/snippets'
+import { describeFillIn, fillIn } from '../lib/variables'
 import { documentKey, isSameDocument, parseDocumentKey, type DocumentRef } from './documents'
 import { useAutosave } from './useAutosave'
 import type { ShowToast } from './useToast'
@@ -202,12 +203,12 @@ export function useWorkspace({ notes, snippets }: Library, showToast: ShowToast)
       return
     }
     try {
-      await navigator.clipboard.writeText(expandSnippets(source, bodies))
+      await navigator.clipboard.writeText(fillIn(source, bodies))
     } catch (error) {
       showToast(`Couldn't copy: ${errorMessage(error)}`)
       return
     }
-    showToast(describeExpansion(source, bodies))
+    showToast(describeFillIn(source, bodies))
   }
 
   async function openInitialDocument() {

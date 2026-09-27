@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, type MouseEvent, type ReactNode } from 'react'
 import { hasModifier, MOD_LABEL } from '../app/keys'
 import { useEscape } from '../app/useEscape'
-import { expandSnippetParts, type ExpansionPart } from '../lib/snippets'
+import type { ExpansionPart } from '../lib/snippets'
+import { fillInParts } from '../lib/variables'
 
 interface NotePreviewProps {
   text: string
@@ -21,16 +22,36 @@ function filledNames(parts: ExpansionPart[], names = new Set<string>()): Set<str
   return names
 }
 
+function variableNames(parts: ExpansionPart[], names = new Set<string>()): Set<string> {
+  for (const part of parts) {
+    if (part.kind === 'variable') names.add(part.name)
+    if (part.kind === 'snippet') variableNames(part.parts, names)
+  }
+  return names
+}
+
+function plural(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? '' : 's'}`
+}
+
 function summary(parts: ExpansionPart[]): string {
-  const count = filledNames(parts).size
-  if (count === 0) return 'No snippets to fill in'
-  return `${count} ${count === 1 ? 'snippet' : 'snippets'} filled in`
+  const snippets = filledNames(parts).size
+  const variables = variableNames(parts).size
+  if (snippets === 0 && variables === 0) return 'No snippets to fill in'
+  return `${[snippets > 0 ? plural(snippets, 'snippet') : '', variables > 0 ? plural(variables, 'variable') : ''].filter(Boolean).join(' and ')} filled in`
 }
 
 function renderParts(parts: ExpansionPart[], path: string): ReactNode[] {
   return parts.map((part, index) => {
     const key = `${path}.${index}`
     if (part.kind === 'text') return part.text
+    if (part.kind === 'variable') {
+      return (
+        <span key={key} className="preview-variable" title={`$${part.name}`}>
+          {part.text}
+        </span>
+      )
+    }
     if (part.kind === 'unresolved') {
       const reason = part.reason === 'missing' ? "Isn't a snippet yet, so it's copied as written" : 'Uses itself, so it stops here'
       return (
@@ -57,7 +78,7 @@ function renderParts(parts: ExpansionPart[], path: string): ReactNode[] {
 // A read-only view of the note exactly as it would be copied, with every @snippet filled in.
 export function NotePreview({ text, snippets, highlights, onToggleHighlights, onOpenSnippet, onExit }: NotePreviewProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
-  const parts = useMemo(() => expandSnippetParts(text, snippets), [text, snippets])
+  const parts = useMemo(() => fillInParts(text, snippets), [text, snippets])
 
   useEscape(onExit)
 

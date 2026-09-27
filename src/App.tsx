@@ -36,7 +36,6 @@ import { notePreview, noteTitle } from './lib/notes'
 import { useSettings, type Accent, type EditorFont, type SidebarSection, type Theme } from './lib/settings'
 import {
   describeUses,
-  expandSnippets,
   extractToSnippet,
   isValidSnippetName,
   suggestSnippetName,
@@ -44,6 +43,7 @@ import {
   toSnippetName,
   type SnippetSort,
 } from './lib/snippets'
+import { fillIn } from './lib/variables'
 
 const NARROW_SCREEN = '(max-width: 760px)'
 const NOTE_PLACEHOLDER = 'Start writing…'
@@ -235,7 +235,7 @@ export default function App() {
     focusEditor()
   }, [])
 
-  const expandedText = useMemo(() => expandSnippets(text, snippetBodies), [text, snippetBodies])
+  const expandedText = useMemo(() => fillIn(text, snippetBodies), [text, snippetBodies])
 
   const openSnippetUsers = useMemo(
     () => snippetUsers(openSnippet?.name ?? '', openSnippet ? notes : [], openSnippet ? snippets : []),
