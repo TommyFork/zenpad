@@ -10,6 +10,8 @@ interface TopBarProps {
   previewing: boolean
   favorite: boolean | undefined
   onShowSidebar: () => void
+  onPeekSidebar: () => void
+  onEndPeek: () => void
   onReturn: () => void
   onTogglePreview: () => void
   onCopy: () => void
@@ -24,6 +26,8 @@ export function TopBar({
   previewing,
   favorite,
   onShowSidebar,
+  onPeekSidebar,
+  onEndPeek,
   onReturn,
   onTogglePreview,
   onCopy,
@@ -34,7 +38,14 @@ export function TopBar({
     <header className="topbar">
       <div className="topbar-start">
         {!sidebarOpen && (
-          <button className="icon-button" onClick={onShowSidebar} aria-label="Show sidebar" title={`Show sidebar  ${MOD_LABEL} \\`}>
+          <button
+            className="icon-button"
+            onClick={onShowSidebar}
+            onPointerEnter={(event) => event.pointerType === 'mouse' && onPeekSidebar()}
+            onPointerLeave={onEndPeek}
+            aria-label="Show sidebar"
+            title={`Show sidebar  ${MOD_LABEL} \\`}
+          >
             <Icon name="sidebar" />
           </button>
         )}
