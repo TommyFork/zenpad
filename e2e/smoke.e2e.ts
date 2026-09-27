@@ -53,3 +53,21 @@ test('loads offline once the service worker is installed', async ({ page, contex
   await page.reload()
   await expect(page.locator('.cm-content')).toContainText('Welcome to Zenpad')
 })
+
+test('shows where a snippet is used and maps it', async ({ page }) => {
+  const errors = watchForErrors(page)
+  await page.goto('/')
+  await expect(page.locator('.cm-content')).toContainText('Welcome to Zenpad')
+
+  await page.locator('.snippet-item', { hasText: '@tone' }).click()
+  const usedIn = page.getByRole('list', { name: 'Used in' })
+  await expect(usedIn).toContainText('Welcome to Zenpad')
+
+  await page.getByRole('button', { name: 'Map', exact: true }).click()
+  const map = page.getByRole('dialog', { name: 'Snippet map' })
+  await expect(map.getByRole('button', { name: /^Open @tone/ })).toBeVisible()
+  await map.getByRole('button', { name: /^Open note “Welcome to Zenpad”/ }).click()
+  await expect(map).toBeHidden()
+  await expect(page.locator('.cm-content')).toContainText('Welcome to Zenpad')
+  expect(errors).toEqual([])
+})

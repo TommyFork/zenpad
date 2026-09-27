@@ -13,6 +13,7 @@ import { NotePreview } from './components/NotePreview'
 import type { IconName } from './components/Icon'
 import { SettingsPanel } from './components/SettingsPanel'
 import { SnippetHeader } from './components/SnippetHeader'
+import { SnippetMap } from './components/SnippetMap'
 import { Sidebar } from './components/Sidebar'
 import { StatusBar } from './components/StatusBar'
 import { ToastView } from './components/ToastView'
@@ -38,8 +39,8 @@ import {
   expandSnippets,
   extractToSnippet,
   isValidSnippetName,
-  referencedSnippetNames,
   suggestSnippetName,
+  snippetUsers,
   toSnippetName,
   type SnippetSort,
 } from './lib/snippets'
@@ -105,6 +106,7 @@ export default function App() {
   const peekTimer = useRef<number | undefined>(undefined)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [mapOpen, setMapOpen] = useState(false)
   const [deleteRequested, setDeleteRequested] = useState(false)
   const [extracting, setExtracting] = useState<EditorSelection | null>(null)
   const { ref: editorRef, selection: editorSelection, replace: replaceInEditor } = useEditorHandle()
@@ -196,10 +198,10 @@ export default function App() {
   }, [previewing, openKey])
 
   const exitPreview = useCallback(() => {
-    if (paletteOpen || settingsOpen || deleteRequested) return
+    if (paletteOpen || settingsOpen || deleteRequested || mapOpen) return
     setPreviewKey(null)
     requestAnimationFrame(focusEditor)
-  }, [paletteOpen, settingsOpen, deleteRequested])
+  }, [paletteOpen, settingsOpen, deleteRequested, mapOpen])
 
   function toggleFavorite() {
     if (!openNote) return
@@ -217,6 +219,11 @@ export default function App() {
     })
   }
 
+  const closeMap = useCallback(() => {
+    setMapOpen(false)
+    focusEditor()
+  }, [])
+
   const closeSettings = useCallback(() => {
     setSettingsOpen(false)
     focusEditor()
@@ -224,15 +231,16 @@ export default function App() {
 
   const expandedText = useMemo(() => expandSnippets(text, snippetBodies), [text, snippetBodies])
 
-  const snippetUses = useMemo((): SnippetUses => {
-    if (!openSnippet) return { notes: 0, snippets: 0, nested: 0 }
-    const uses = (body: string) => referencedSnippetNames(body).includes(openSnippet.name)
-    return {
-      notes: notes.filter((note) => uses(note.body)).length,
-      snippets: snippets.filter((snippet) => snippet.id !== openSnippet.id && uses(snippet.body)).length,
-      nested: [...snippetParents.values()].filter((parent) => parent === openSnippet.name).length,
-    }
-  }, [notes, snippets, snippetParents, openSnippet])
+  const openSnippetUsers = useMemo(
+    () => snippetUsers(openSnippet?.name ?? '', openSnippet ? notes : [], openSnippet ? snippets : []),
+    [notes, snippets, openSnippet],
+  )
+
+  const snippetUses: SnippetUses = {
+    notes: openSnippetUsers.notes.length,
+    snippets: openSnippetUsers.snippets.length,
+    nested: openSnippet ? [...snippetParents.values()].filter((parent) => parent === openSnippet.name).length : 0,
+  }
 
   function toggleSnippetExpanded(id: string) {
     const expanded = settings.expandedSnippets.filter((candidate) => snippets.some((snippet) => snippet.id === candidate))
@@ -273,6 +281,7 @@ export default function App() {
 
   function open(doc: DocumentRef) {
     if (isNarrow) setDrawerOpen(false)
+    setMapOpen(false)
     void workspace.openDocument(doc)
   }
 
@@ -341,6 +350,7 @@ export default function App() {
     ...(openNote
       ? [{ id: 'favorite', label: openNote.favorite ? 'Remove from favorites' : 'Add to favorites', icon: 'star' as const, run: toggleFavorite }]
       : []),
+    { id: 'map', label: 'Snippet map', icon: 'map', run: () => setMapOpen(true) },
     { id: 'sidebar', label: sidebarVisible ? 'Hide sidebar' : 'Show sidebar', icon: 'sidebar', shortcut: `${MOD_LABEL} \\`, run: () => setSidebar(!sidebarVisible) },
     { id: 'theme-light', label: 'Theme: Light', icon: 'sun', run: () => setTheme('light') },
     { id: 'theme-dark', label: 'Theme: Dark', icon: 'moon', run: () => setTheme('dark') },
@@ -391,7 +401,7 @@ export default function App() {
     `font-${settings.font}`,
     sidebarVisible ? 'has-sidebar' : 'no-sidebar',
     isNarrow ? 'is-narrow' : '',
-    isWriting && !previewing && !paletteOpen && !settingsOpen && !deleteRequested && !extracting ? 'is-writing' : '',
+    isWriting && !previewing && !paletteOpen && !settingsOpen && !deleteRequested && !extracting && !mapOpen ? 'is-writing' : '',
   ]
 
   const sidebarProps = {
@@ -415,6 +425,10 @@ export default function App() {
       if (isNarrow) setDrawerOpen(false)
       void workspace.newSnippet()
     },
+    onShowMap: () => {
+      if (isNarrow) setDrawerOpen(false)
+      setMapOpen(true)
+    },
     onSearch: () => setPaletteOpen(true),
     onSettings: () => setSettingsOpen(true),
   }
@@ -435,6 +449,10 @@ export default function App() {
             onSettings={() => {
               stopPeek()
               setSettingsOpen(true)
+            }}
+            onShowMap={() => {
+              stopPeek()
+              setMapOpen(true)
             }}
             onClose={stopPeek}
             peek={{ open: peeking, onPin: () => setSidebar(true), onPointerEnter: startPeek, onPointerLeave: endPeek }}
@@ -462,13 +480,14 @@ export default function App() {
           {openSnippet && (
             <SnippetHeader
               snippet={openSnippet}
-              noteUses={snippetUses.notes}
-              snippetUses={snippetUses.snippets}
+              users={openSnippetUsers}
               parentName={snippetParents.get(openSnippet.name)}
               focusName={workspace.focusNameFor === openSnippet.id}
               onRename={workspace.renameOpenSnippet}
               onNameDone={focusEditor}
               onOpenSnippet={(name) => void workspace.openSnippetByName(name)}
+              onOpen={open}
+              onShowMap={() => setMapOpen(true)}
             />
           )}
           {workspace.editorDocument && (
@@ -497,6 +516,7 @@ export default function App() {
         {openDocRecord && <StatusBar text={previewing ? expandedText : text} expandedText={expandedText} saveStatus={workspace.saveStatus} />}
       </main>
 
+      {mapOpen && <SnippetMap notes={notes} snippets={snippets} openDoc={openDoc} onOpen={open} onClose={closeMap} />}
       {paletteOpen && <CommandPalette items={paletteItems} onClose={closePalette} />}
       {settingsOpen && (
         <SettingsPanel

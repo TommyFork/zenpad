@@ -13,6 +13,7 @@ import {
   renameSnippetReferences,
   snippetAncestors,
   snippetParents,
+  snippetUsers,
   type SnippetNode,
   sortSnippets,
   suggestSnippetName,
@@ -296,5 +297,28 @@ describe('describeUses', () => {
     expect(describeUses(1, 0)).toBe('1 note')
     expect(describeUses(0, 3)).toBe('3 snippets')
     expect(describeUses(0, 0)).toBe('')
+  })
+})
+
+describe('snippetUsers', () => {
+  const notes = [
+    { id: 'n1', body: 'Uses @tone' },
+    { id: 'n2', body: 'Nothing here' },
+    { id: 'n3', body: '@tone and @tone again' },
+  ]
+  const snippets = [
+    { name: 'tone', body: 'Mentions @tone itself' },
+    { name: 'context', body: 'Repo. @tone' },
+    { name: 'other', body: '@context' },
+  ]
+
+  it('finds the notes and snippets that mention a snippet directly', () => {
+    const users = snippetUsers('tone', notes, snippets)
+    expect(users.notes.map((note) => note.id)).toEqual(['n1', 'n3'])
+    expect(users.snippets.map((snippet) => snippet.name)).toEqual(['context'])
+  })
+
+  it('finds nothing for a snippet no one uses', () => {
+    expect(snippetUsers('other', notes, snippets)).toEqual({ notes: [], snippets: [] })
   })
 })

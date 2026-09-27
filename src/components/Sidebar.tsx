@@ -38,6 +38,7 @@ interface SidebarProps {
   onOpen: (doc: DocumentRef) => void
   onNewNote: () => void
   onNewSnippet: () => void
+  onShowMap: () => void
   onSearch: () => void
   onSettings: () => void
   onClose: () => void
@@ -92,6 +93,7 @@ export function Sidebar({
   onOpen,
   onNewNote,
   onNewSnippet,
+  onShowMap,
   onSearch,
   onSettings,
   onClose,
@@ -245,6 +247,11 @@ export function Sidebar({
                   title={`Sort ${nextSort.description}`}
                 >
                   {currentSort.label}
+                </button>
+              )}
+              {snippets.length > 0 && (
+                <button className="icon-button small" onClick={onShowMap} aria-label="Snippet map" title="Snippet map">
+                  <Icon name="map" size={16} />
                 </button>
               )}
               <button className="icon-button small" onClick={onNewSnippet} aria-label="New snippet" title="New snippet">
