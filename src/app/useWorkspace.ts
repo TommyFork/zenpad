@@ -143,27 +143,35 @@ export function useWorkspace({ notes, snippets }: Library, showToast: ShowToast)
     await openDocument({ kind: 'note', id: note.id })
   }
 
-  async function deleteCurrent() {
-    const doc = openDocRef.current
-    if (!doc) return
+  // Deleting the open document moves on to another one. Deleting any other document leaves the page as it is.
+  async function deleteDocument(doc: DocumentRef) {
     await flush()
+    const wasOpen = isSameDocument(openDocRef.current, doc)
     if (doc.kind === 'note') {
       const note = await deleteNote(doc.id)
-      await openMostRecentNote(doc.id)
+      if (wasOpen) await openMostRecentNote(doc.id)
       if (!note || note.body.trim() === '') return
       showToast('Note deleted.', {
         label: 'Undo',
-        run: () => void restoreNote(note).then(() => openDocument({ kind: 'note', id: note.id })),
+        run: () =>
+          void restoreNote(note).then(() => {
+            if (wasOpen) return openDocument({ kind: 'note', id: note.id })
+          }),
       })
       return
     }
     const snippet = await deleteSnippet(doc.id)
-    if (returnTo) await openDocument(returnTo)
-    else await openMostRecentNote()
+    if (wasOpen) {
+      if (returnTo) await openDocument(returnTo)
+      else await openMostRecentNote()
+    }
     if (!snippet) return
     showToast(`Deleted @${snippet.name}.`, {
       label: 'Undo',
-      run: () => void restoreSnippet(snippet).then(() => openDocument({ kind: 'snippet', id: snippet.id })),
+      run: () =>
+        void restoreSnippet(snippet).then(() => {
+          if (wasOpen) return openDocument({ kind: 'snippet', id: snippet.id })
+        }),
     })
   }
 
@@ -241,7 +249,7 @@ export function useWorkspace({ notes, snippets }: Library, showToast: ShowToast)
     newSnippet,
     openSnippetByName,
     createSnippetInBackground,
-    deleteCurrent,
+    deleteDocument,
     renameOpenSnippet,
     copyCurrent,
   }
