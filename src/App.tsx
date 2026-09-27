@@ -41,11 +41,13 @@ import {
   referencedSnippetNames,
   suggestSnippetName,
   toSnippetName,
+  type SnippetSort,
 } from './lib/snippets'
 
 const NARROW_SCREEN = '(max-width: 760px)'
 const NOTE_PLACEHOLDER = 'Start writing…'
 const SNIPPET_PLACEHOLDER = 'Write the text this snippet stands for…'
+const PEEK_CLOSE_DELAY_MS = 250
 
 interface Command {
   id: string
@@ -99,6 +101,8 @@ export default function App() {
   const isNarrow = useMediaQuery(NARROW_SCREEN)
   const isWriting = useWritingFocus()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [peeking, setPeeking] = useState(false)
+  const peekTimer = useRef<number | undefined>(undefined)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [deleteRequested, setDeleteRequested] = useState(false)
@@ -134,10 +138,32 @@ export default function App() {
 
   useEffect(() => applyTheme(settings.theme), [settings.theme])
 
+  const stopPeek = useCallback(() => {
+    window.clearTimeout(peekTimer.current)
+    setPeeking(false)
+  }, [])
+
   const setSidebar = useCallback(
-    (open: boolean) => (isNarrow ? setDrawerOpen(open) : updateSettings({ sidebarOpen: open })),
+    (open: boolean) => {
+      setPeeking(false)
+      if (isNarrow) setDrawerOpen(open)
+      else updateSettings({ sidebarOpen: open })
+    },
     [isNarrow, updateSettings],
   )
+
+  // Hovering the show-sidebar button slides the sidebar in; it slides away shortly after the pointer leaves both.
+  const startPeek = useCallback(() => {
+    window.clearTimeout(peekTimer.current)
+    setPeeking(true)
+  }, [])
+
+  const endPeek = useCallback(() => {
+    window.clearTimeout(peekTimer.current)
+    peekTimer.current = window.setTimeout(() => setPeeking(false), PEEK_CLOSE_DELAY_MS)
+  }, [])
+
+  useEffect(() => () => window.clearTimeout(peekTimer.current), [])
 
   const closePalette = useCallback(() => {
     setPaletteOpen(false)
@@ -368,37 +394,52 @@ export default function App() {
     isWriting && !previewing && !paletteOpen && !settingsOpen && !deleteRequested && !extracting ? 'is-writing' : '',
   ]
 
+  const sidebarProps = {
+    notes,
+    snippets,
+    openDoc,
+    collapsedSections: settings.collapsedSections,
+    onToggleSection: toggleSection,
+    referenceCounts,
+    snippetParents,
+    snippetSort: settings.snippetSort,
+    onSnippetSortChange: (snippetSort: SnippetSort) => updateSettings({ snippetSort }),
+    expandedSnippets: settings.expandedSnippets,
+    onToggleSnippet: toggleSnippetExpanded,
+    onOpen: open,
+    onNewNote: () => {
+      if (isNarrow) setDrawerOpen(false)
+      void workspace.newNote()
+    },
+    onNewSnippet: () => {
+      if (isNarrow) setDrawerOpen(false)
+      void workspace.newSnippet()
+    },
+    onSearch: () => setPaletteOpen(true),
+    onSettings: () => setSettingsOpen(true),
+  }
+
   return (
     <div className={classes.filter(Boolean).join(' ')}>
-      {sidebarVisible && (
-        <>
-          {isNarrow && <div className="drawer-backdrop" onClick={() => setDrawerOpen(false)} />}
+      {sidebarVisible && isNarrow && <div className="drawer-backdrop" onClick={() => setDrawerOpen(false)} />}
+      {sidebarVisible ? (
+        <Sidebar {...sidebarProps} onClose={() => setSidebar(false)} />
+      ) : (
+        !isNarrow && (
           <Sidebar
-            notes={notes}
-            snippets={snippets}
-            openDoc={openDoc}
-            collapsedSections={settings.collapsedSections}
-            onToggleSection={toggleSection}
-            referenceCounts={referenceCounts}
-            snippetParents={snippetParents}
-            snippetSort={settings.snippetSort}
-            onSnippetSortChange={(snippetSort) => updateSettings({ snippetSort })}
-            expandedSnippets={settings.expandedSnippets}
-            onToggleSnippet={toggleSnippetExpanded}
-            onOpen={open}
-            onNewNote={() => {
-              if (isNarrow) setDrawerOpen(false)
-              void workspace.newNote()
+            {...sidebarProps}
+            onSearch={() => {
+              stopPeek()
+              setPaletteOpen(true)
             }}
-            onNewSnippet={() => {
-              if (isNarrow) setDrawerOpen(false)
-              void workspace.newSnippet()
+            onSettings={() => {
+              stopPeek()
+              setSettingsOpen(true)
             }}
-            onSearch={() => setPaletteOpen(true)}
-            onSettings={() => setSettingsOpen(true)}
-            onClose={() => setSidebar(false)}
+            onClose={stopPeek}
+            peek={{ open: peeking, onPin: () => setSidebar(true), onPointerEnter: startPeek, onPointerLeave: endPeek }}
           />
-        </>
+        )
       )}
 
       <main className="stage">
@@ -409,6 +450,8 @@ export default function App() {
           previewing={previewing}
           favorite={openNote ? openNote.favorite === true : undefined}
           onShowSidebar={() => setSidebar(true)}
+          onPeekSidebar={startPeek}
+          onEndPeek={endPeek}
           onReturn={() => workspace.returnTo && open(workspace.returnTo)}
           onTogglePreview={togglePreview}
           onCopy={() => void workspace.copyCurrent()}

@@ -184,6 +184,7 @@ kbd {
 /* Sidebar */
 
 .sidebar {
+  position: relative;
   width: var(--sidebar-width);
   flex-shrink: 0;
   display: flex;
@@ -201,6 +202,63 @@ kbd {
   .is-writing .sidebar:hover {
     opacity: 1;
   }
+}
+
+/* Clicking the sidebar's right-hand border hides it. */
+.sidebar-edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -4px;
+  z-index: 1;
+  width: 8px;
+  cursor: w-resize;
+}
+
+.sidebar-edge::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 3px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+@media (hover: hover) {
+  .sidebar-edge:hover::after {
+    opacity: 0.5;
+  }
+}
+
+/* While hidden, hovering the show-sidebar button slides the sidebar in over the page. */
+.sidebar.is-peek {
+  position: fixed;
+  top: 8px;
+  bottom: 8px;
+  left: 8px;
+  z-index: 35;
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  box-shadow: var(--shadow-dialog);
+  overflow: hidden;
+  opacity: 0;
+  transform: translateX(calc(-100% - 16px));
+  transition:
+    transform 0.26s var(--ease),
+    opacity 0.2s var(--ease);
+}
+
+.sidebar.is-peek.is-open {
+  opacity: 1;
+  transform: none;
+}
+
+.sidebar.is-peek .sidebar-edge {
+  right: 0;
 }
 
 .sidebar-head {
@@ -239,6 +297,31 @@ kbd {
   width: 26px;
   height: 26px;
   border-radius: 7px;
+}
+
+.new-note-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin: 0 12px 8px;
+  padding: 9px 12px;
+  border-radius: 9px;
+  font-weight: 600;
+  color: var(--bg);
+  background: var(--accent);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  transition: background-color 0.15s, transform 0.1s;
+}
+
+@media (hover: hover) {
+  .new-note-button:hover {
+    background: var(--accent-ink);
+  }
+}
+
+.new-note-button:active {
+  transform: scale(0.98);
 }
 
 .search-trigger {

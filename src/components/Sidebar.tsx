@@ -41,6 +41,13 @@ interface SidebarProps {
   onSearch: () => void
   onSettings: () => void
   onClose: () => void
+  // Set when the sidebar is hidden and slides in over the page while the pointer rests on it.
+  peek?: {
+    open: boolean
+    onPin: () => void
+    onPointerEnter: () => void
+    onPointerLeave: () => void
+  }
 }
 
 interface SectionProps {
@@ -88,6 +95,7 @@ export function Sidebar({
   onSearch,
   onSettings,
   onClose,
+  peek,
 }: SidebarProps) {
   const now = useNow(RELATIVE_TIME_REFRESH_MS)
   const favorites = notes.filter((note) => note.favorite)
@@ -170,13 +178,30 @@ export function Sidebar({
   }
 
   return (
-    <aside className="sidebar" aria-label="Library">
+    <aside
+      className={peek ? `sidebar is-peek${peek.open ? ' is-open' : ''}` : 'sidebar'}
+      aria-label="Library"
+      inert={peek && !peek.open}
+      onPointerEnter={peek?.onPointerEnter}
+      onPointerLeave={peek?.onPointerLeave}
+    >
       <div className="sidebar-head">
         <span className="wordmark">Zenpad</span>
-        <button className="icon-button" onClick={onClose} aria-label="Hide sidebar" title={`Hide sidebar  ${MOD_LABEL} \\`}>
-          <Icon name="sidebar" />
-        </button>
+        {peek ? (
+          <button className="icon-button" onClick={peek.onPin} aria-label="Keep sidebar open" title={`Keep sidebar open  ${MOD_LABEL} \\`}>
+            <Icon name="sidebar" />
+          </button>
+        ) : (
+          <button className="icon-button" onClick={onClose} aria-label="Hide sidebar" title={`Hide sidebar  ${MOD_LABEL} \\`}>
+            <Icon name="sidebar" />
+          </button>
+        )}
       </div>
+
+      <button className="new-note-button" onClick={onNewNote} title={`New note  ${MOD_LABEL} ⌥ N`}>
+        <Icon name="plus" size={16} />
+        <span>New note</span>
+      </button>
 
       <button className="search-trigger" onClick={onSearch}>
         <Icon name="search" size={16} />
@@ -247,6 +272,9 @@ export function Sidebar({
           <GitHubIcon size={17} />
         </a>
       </div>
+
+      {/* The right-hand border doubles as a hide control. Keyboard users have the button in the header. */}
+      <div className="sidebar-edge" onClick={onClose} title="Hide sidebar" aria-hidden="true" />
     </aside>
   )
 }
