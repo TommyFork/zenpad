@@ -118,9 +118,9 @@ jobs:
 
   # Preview deploys for pull requests. Each PR gets a stable alias at
   # https://pr-<number>.zenpad.pages.dev that updates on every push.
-  # PRs from forks have no access to the secrets, so they skip this.
+  # PRs from forks and from Dependabot have no access to the secrets, so they skip this.
   preview:
-    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'dependabot[bot]'
     needs: build
     runs-on: ubuntu-latest
     permissions:
