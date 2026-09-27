@@ -7,6 +7,7 @@ import { EditorState, Prec, type Extension } from '@codemirror/state'
 import { drawSelection, EditorView, keymap, placeholder, tooltips } from '@codemirror/view'
 import { extractTooltip } from './extractTooltip'
 import { noteVariables } from './noteVariables'
+import { replaceState } from './replaceState'
 import { snippetChips } from './snippetChips'
 import { snippetCompletion } from './snippetCompletion'
 import { setSnippetBodies, snippetBodiesField, type SnippetBodies } from './snippetState'
@@ -154,7 +155,7 @@ export function Editor({ ref, document, snippets, placeholderText, onChange, onO
         doc: document.text,
         extensions: [...extensionsRef.current, placeholder(placeholderText)],
       })
-    view.setState(state)
+    replaceState(view, state)
     view.dispatch({ effects: setSnippetBodies.of(snippetsRef.current) })
     if (cached) view.dispatch({ effects: EditorView.scrollIntoView(cached.selection.main.head, { y: 'center' }) })
     else view.scrollDOM.scrollTop = 0
