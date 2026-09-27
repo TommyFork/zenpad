@@ -360,6 +360,12 @@ export default function App() {
       shortcut: `${MOD_LABEL} E`,
       run: togglePreview,
     },
+    {
+      id: 'preview-highlights',
+      label: settings.previewHighlights ? 'Preview: Hide snippet highlights' : 'Preview: Highlight snippets',
+      icon: 'eye',
+      run: () => updateSettings({ previewHighlights: !settings.previewHighlights }),
+    },
     ...(openNote
       ? [{ id: 'favorite', label: openNote.favorite ? 'Remove from favorites' : 'Add to favorites', icon: 'star' as const, run: toggleFavorite }]
       : []),
@@ -529,7 +535,6 @@ export default function App() {
               text={text}
               snippets={snippetBodies}
               highlights={settings.previewHighlights}
-              onToggleHighlights={() => updateSettings({ previewHighlights: !settings.previewHighlights })}
               onOpenSnippet={(name) => void workspace.openSnippetByName(name)}
               onExit={exitPreview}
             />

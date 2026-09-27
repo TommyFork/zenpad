@@ -19,6 +19,11 @@ const FONTS: Choice<EditorFont>[] = [
   { value: 'mono', label: 'Mono' },
 ]
 
+const PREVIEW_HIGHLIGHTS: Choice<'tinted' | 'plain'>[] = [
+  { value: 'tinted', label: 'Tinted' },
+  { value: 'plain', label: 'Plain' },
+]
+
 const ACCENTS: Choice<Accent>[] = [
   { value: 'lake', label: 'Lake' },
   { value: 'sage', label: 'Sage' },
@@ -96,6 +101,12 @@ export function SettingsPanel({ settings, storagePersisted, noteCount, snippetCo
         <Segmented label="Theme" choices={THEMES} value={settings.theme} onChange={(theme) => onChange({ theme })} />
         <Swatches value={settings.accent} onChange={(accent) => onChange({ accent })} />
         <Segmented label="Writing font" choices={FONTS} value={settings.font} onChange={(font) => onChange({ font })} />
+        <Segmented
+          label="Preview snippets"
+          choices={PREVIEW_HIGHLIGHTS}
+          value={settings.previewHighlights ? 'tinted' : 'plain'}
+          onChange={(value) => onChange({ previewHighlights: value === 'tinted' })}
+        />
 
         <div className="settings-section">
           <h3>Your library</h3>
