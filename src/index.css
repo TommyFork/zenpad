@@ -513,12 +513,6 @@ kbd {
   transition: background-color 0.15s;
 }
 
-@media (hover: hover) {
-  .doc-item:hover {
-    background: var(--line);
-  }
-}
-
 .doc-item[aria-current='page'] {
   background: var(--surface-raised);
   box-shadow: 0 0 0 1px var(--line), 0 1px 2px var(--line);
@@ -566,8 +560,11 @@ kbd {
   padding: 6px 12px;
 }
 
-/* Sits over the right end of the row's first line and shows while the row is hovered or focused. */
-.doc-row {
+/*
+  The item and its delete button share a wrapper (nested snippet lists sit outside it), so plain :hover
+  covers both without :has(). Hover state shows at once and fades out, so sweeping the list stays snappy.
+*/
+.doc-entry {
   position: relative;
 }
 
@@ -586,36 +583,46 @@ kbd {
   transition: opacity 0.15s, color 0.15s, background-color 0.15s;
 }
 
-.snippet-node > .doc-delete {
+.snippet-item + .doc-delete {
   top: 3px;
-}
-
-.doc-item:hover + .doc-delete,
-.doc-delete:hover,
-.doc-delete:focus-visible,
-.doc-item:focus-visible + .doc-delete {
-  opacity: 1;
-  pointer-events: auto;
 }
 
 .doc-delete:hover {
   color: var(--ink);
 }
 
+/* The time sits under the button, so the two cross-fade in step rather than swapping on a timer. */
+.doc-entry .doc-time {
+  transition: opacity 0.15s;
+}
+
+.doc-item:focus-visible + .doc-delete,
+.doc-delete:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.doc-item:focus-visible .doc-time,
+.doc-entry:has(> .doc-delete:focus-visible) .doc-time {
+  opacity: 0;
+}
+
 @media (hover: hover) {
-  .doc-row:has(> .doc-delete:hover) > .doc-item {
+  .doc-entry:hover > .doc-item {
     background: var(--line);
+    transition-duration: 0s;
   }
-}
 
-/* The time would sit under the button, so it steps aside while the button shows and returns once it has faded out. */
-.doc-row > .doc-item .doc-time {
-  transition: visibility 0s 0.15s;
-}
+  .doc-entry:hover > .doc-delete {
+    opacity: 1;
+    pointer-events: auto;
+    transition-duration: 0s, 0.15s, 0.15s;
+  }
 
-.doc-row:has(> .doc-item:hover, > .doc-item:focus-visible, > .doc-delete:hover, > .doc-delete:focus-visible) > .doc-item .doc-time {
-  visibility: hidden;
-  transition-delay: 0s;
+  .doc-entry:hover .doc-time {
+    opacity: 0;
+    transition-duration: 0s;
+  }
 }
 
 /* Without hover, the button stays visible and the row leaves room for it. */
@@ -625,11 +632,10 @@ kbd {
     pointer-events: auto;
   }
 
-  .doc-row > .doc-item .doc-item-row {
+  .doc-entry .doc-item-row {
     padding-right: 26px;
   }
 }
-
 
 .snippet-node {
   position: relative;
