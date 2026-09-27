@@ -1,7 +1,7 @@
 import type { Completion, CompletionContext, CompletionResult } from '@codemirror/autocomplete'
 import { RangeSetBuilder, StateField, type EditorState } from '@codemirror/state'
 import { Decoration, EditorView, ViewPlugin, hoverTooltip, type DecorationSet, type ViewUpdate } from '@codemirror/view'
-import { parseDefinitionLine, parseVariables, resolveVariables, variableReferencePattern } from '../lib/variables'
+import { parseDefinitionLine, parseVariables, resolveVariables, variableTokens, type VariableToken } from '../lib/variables'
 import { snippetBodiesField } from './snippetState'
 
 const TOOLTIP_PREVIEW_LENGTH = 480
@@ -21,6 +21,23 @@ const variablesField = StateField.define<ReadonlyMap<string, string>>({
 const definitionLine = Decoration.line({ class: 'cm-variable-line' })
 const definitionName = Decoration.mark({ class: 'cm-variable cm-variable-def' })
 const referenceChip = Decoration.mark({ class: 'cm-variable' })
+const inlineBrace = Decoration.mark({ class: 'cm-variable-brace' })
+const inlineValue = Decoration.mark({ class: 'cm-variable-value' })
+
+interface LineVariable {
+  token: VariableToken
+  // A definition line's "$name", or an inline "$name{value}".
+  isDefinition: boolean
+}
+
+// The variables on a line. A definition line's value is skipped, since it isn't part of the note.
+function lineVariables(text: string): LineVariable[] {
+  const definition = parseDefinitionLine(text)
+  return variableTokens(text).flatMap((token) => {
+    if (!definition) return [{ token, isDefinition: token.inline !== undefined }]
+    return token.from === definition.nameFrom ? [{ token, isDefinition: true }] : token.from >= definition.valueFrom ? [{ token, isDefinition: false }] : []
+  })
+}
 
 function buildDecorations(view: EditorView): DecorationSet {
   const values = view.state.field(variablesField)
@@ -30,15 +47,17 @@ function buildDecorations(view: EditorView): DecorationSet {
   for (const { from, to } of view.visibleRanges) {
     for (let pos = Math.max(from, done + 1); pos <= to; ) {
       const line = view.state.doc.lineAt(pos)
-      const definition = parseDefinitionLine(line.text)
-      if (definition) {
-        builder.add(line.from, line.from, definitionLine)
-        builder.add(line.from + definition.nameFrom, line.from + definition.nameTo, definitionName)
-      }
-      for (const match of line.text.matchAll(variableReferencePattern())) {
-        if (definition && match.index === definition.nameFrom) continue
-        if (!values.has(match[1])) continue
-        builder.add(line.from + match.index, line.from + match.index + match[0].length, referenceChip)
+      if (parseDefinitionLine(line.text)) builder.add(line.from, line.from, definitionLine)
+      for (const { token, isDefinition } of lineVariables(line.text)) {
+        const at = (offset: number) => line.from + offset
+        if (token.inline) {
+          builder.add(at(token.from), at(token.nameTo), definitionName)
+          builder.add(at(token.nameTo), at(token.inline.from), inlineBrace)
+          if (token.inline.to > token.inline.from) builder.add(at(token.inline.from), at(token.inline.to), inlineValue)
+          builder.add(at(token.inline.to), at(token.to), inlineBrace)
+        } else if (values.has(token.name)) {
+          builder.add(at(token.from), at(token.to), isDefinition ? definitionName : referenceChip)
+        }
       }
       done = line.to
       pos = line.to + 1
@@ -65,37 +84,43 @@ const variableHighlighter = ViewPlugin.fromClass(
 interface VariableAt {
   name: string
   isDefinition: boolean
+  isInline: boolean
 }
 
 function variableAt(state: EditorState, pos: number): VariableAt | null {
   const line = state.doc.lineAt(pos)
-  const definition = parseDefinitionLine(line.text)
-  for (const match of line.text.matchAll(variableReferencePattern())) {
-    const from = line.from + match.index
-    if (pos < from || pos > from + match[0].length) continue
-    if (!state.field(variablesField).has(match[1])) return null
-    return { name: match[1], isDefinition: definition?.nameFrom === match.index }
+  for (const { token, isDefinition } of lineVariables(line.text)) {
+    if (pos < line.from + token.from || pos > line.from + token.to) continue
+    if (!state.field(variablesField).has(token.name)) return null
+    return { name: token.name, isDefinition, isInline: token.inline !== undefined }
   }
   return null
 }
 
-// Where the variable's value is written, so it can be selected and typed over.
+// Where the variable's value is first set, so it can be selected and typed over.
 function definitionRange(state: EditorState, name: string): { from: number; to: number } | null {
   for (let number = 1; number <= state.doc.lines; number++) {
     const line = state.doc.line(number)
     const definition = parseDefinitionLine(line.text)
     if (definition?.name === name) return { from: line.from + definition.valueFrom, to: line.from + definition.valueTo }
+    if (definition) continue
+    const inline = variableTokens(line.text).find((token) => token.name === name && token.inline)?.inline
+    if (inline) return { from: line.from + inline.from, to: line.from + inline.to }
   }
   return null
 }
 
 function countReferences(state: EditorState, name: string): number {
   let count = 0
-  for (const match of state.doc.toString().matchAll(variableReferencePattern())) if (match[1] === name) count++
-  return count - 1
+  for (let number = 1; number <= state.doc.lines; number++) {
+    for (const { token, isDefinition } of lineVariables(state.doc.line(number).text)) {
+      if (token.name === name && !isDefinition) count++
+    }
+  }
+  return count
 }
 
-function tooltipBody(state: EditorState, { name, isDefinition }: VariableAt): HTMLElement {
+function tooltipBody(state: EditorState, { name, isDefinition, isInline }: VariableAt): HTMLElement {
   const value = resolveVariables(state.field(variablesField), state.field(snippetBodiesField)).get(name) ?? ''
   const container = document.createElement('div')
   container.className = 'cm-snippet-tooltip'
@@ -115,7 +140,10 @@ function tooltipBody(state: EditorState, { name, isDefinition }: VariableAt): HT
   hint.className = 'cm-snippet-tooltip-hint'
   if (isDefinition) {
     const uses = countReferences(state, name)
-    hint.textContent = uses === 0 ? `Not used yet. Type $${name} to use it.` : `Used ${uses} ${uses === 1 ? 'time' : 'times'}. Change it here to change them all.`
+    hint.textContent =
+      uses === 0
+        ? `Not used ${isInline ? 'anywhere else ' : ''}yet. Type $${name} to use it.`
+        : `Used ${uses} ${isInline ? 'more ' : ''}${uses === 1 ? 'time' : 'times'}. Change it here to change them all.`
   } else {
     hint.textContent = '⌘ click to change it'
   }
@@ -145,7 +173,7 @@ const jumpOnModClick = EditorView.domEventHandlers({
 
 // Suggests the variables this note defines after a "$".
 export function variableCompletionSource(context: CompletionContext): CompletionResult | null {
-  const typed = context.matchBefore(/(?<![\w$\\])\$[a-z0-9_-]*/)
+  const typed = context.matchBefore(/(?<![\w$\\])\$[A-Za-z0-9_-]*/)
   if (!typed) return null
   const line = context.state.doc.lineAt(typed.from)
   // Starting a new definition, not using one.

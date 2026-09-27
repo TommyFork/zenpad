@@ -9,6 +9,7 @@ import {
   parseVariables,
   resolveVariables,
   stripVariableDefinitions,
+  variableTokens,
   usedVariableNames,
 } from './variables'
 
@@ -41,7 +42,6 @@ describe('parseDefinitionLine', () => {
   it('ignores lines that only mention a variable', () => {
     expect(parseDefinitionLine('Price: $5 = cheap')).toBeNull()
     expect(parseDefinitionLine('if $x == 1')).toBeNull()
-    expect(parseDefinitionLine('$Upper = no')).toBeNull()
     expect(parseDefinitionLine('$5 = no')).toBeNull()
   })
 })
@@ -49,6 +49,40 @@ describe('parseDefinitionLine', () => {
 describe('parseVariables', () => {
   it('keeps the first definition of a name', () => {
     expect(parseVariables('$a = one\n$a = two')).toEqual(new Map([['a', 'one']]))
+  })
+
+  it('reads inline definitions in the order they appear', () => {
+    expect(parseVariables('On $branch{fix/login}, PR $PR{482}.\n$branch = later')).toEqual(
+      new Map([
+        ['branch', 'fix/login'],
+        ['PR', '482'],
+      ]),
+    )
+  })
+
+  it('treats names with different case as different variables', () => {
+    expect(parseVariables('$PR = 1\n$pr = 2\n$prUrl = 3')).toEqual(
+      new Map([
+        ['PR', '1'],
+        ['pr', '2'],
+        ['prUrl', '3'],
+      ]),
+    )
+  })
+})
+
+describe('variableTokens', () => {
+  it('finds uses and inline definitions with their ranges', () => {
+    const line = 'Use $a and $B{x y}.'
+    const [use, inline] = variableTokens(line)
+    expect(use).toMatchObject({ name: 'a', inline: undefined })
+    expect(line.slice(inline.from, inline.to)).toBe('$B{x y}')
+    expect(line.slice(inline.from, inline.nameTo)).toBe('$B')
+    expect(line.slice(inline.inline!.from, inline.inline!.to)).toBe('x y')
+  })
+
+  it('leaves shell-style ${NAME} alone', () => {
+    expect(variableTokens('echo ${HOME}')).toEqual([])
   })
 })
 
@@ -91,6 +125,20 @@ describe('fillIn', () => {
     expect(fillIn('$a = 1\nCosts $5, uses $HOME and $b, \\$a, a$a', bodies)).toBe('Costs $5, uses $HOME and $b, \\$a, a$a')
   })
 
+  it('fills in an inline definition in place, and every other use', () => {
+    expect(fillIn('Working on $branch{fix/login} today. Rebase $branch first.', bodies)).toBe(
+      'Working on fix/login today. Rebase fix/login first.',
+    )
+  })
+
+  it('keeps an inline definition whole when its value names a snippet or is followed by name characters', () => {
+    expect(fillIn('$style{@tone}-ish and $style', bodies)).toBe('Be concise.-ish and Be concise.')
+  })
+
+  it('fills in capitalized names', () => {
+    expect(fillIn('$PR = 482\nPR $PR, not $pr', bodies)).toBe('PR 482, not $pr')
+  })
+
   it('matches the longest name', () => {
     expect(fillIn('$pr = 1\n$pr-url = u\n$pr-url and $pr-', bodies)).toBe('u and 1-')
   })
@@ -104,7 +152,7 @@ describe('fillInParts', () => {
   }
 
   it('produces the same text as fillIn', () => {
-    for (const text of [note, 'plain', '$a = 1\n$a$a @missing', '$x = @tone\n$x']) {
+    for (const text of [note, 'plain', '$a = 1\n$a$a @missing', '$x = @tone\n$x', 'On $b{x}-y, $b @review $c{@tone}']) {
       expect(flatten(fillInParts(text, bodies))).toBe(fillIn(text, bodies))
     }
   })

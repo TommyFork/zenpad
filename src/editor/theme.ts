@@ -65,6 +65,9 @@ const zenTheme = EditorView.theme({
     boxShadow: 'inset 2px 0 0 var(--variable-wash-strong)',
   },
   '.cm-line.cm-variable-line .cm-variable': { fontSize: '1em' },
+  // An inline definition shows its value in place, underlined so it reads as the value being set.
+  '.cm-variable-brace': { color: 'var(--faint)', fontFamily: 'var(--mono-font)', fontSize: '0.8em' },
+  '.cm-variable-value': { textDecoration: 'underline 1.5px var(--variable-wash-strong)', textUnderlineOffset: '0.2em' },
   '.cm-snippet-tooltip-name.cm-variable-tooltip-name': { color: 'var(--variable-ink)', fontFamily: 'var(--mono-font)' },
   '.cm-tooltip': {
     border: '1px solid var(--line)',

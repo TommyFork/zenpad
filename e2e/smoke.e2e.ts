@@ -127,3 +127,20 @@ test('fills in note variables and jumps to where one is set', async ({ page }) =
   await expect(page.locator('.cm-preview-variable')).toHaveCount(2)
   expect(errors).toEqual([])
 })
+
+test('sets a variable inline and fills it in where it was set', async ({ page }) => {
+  const errors = watchForErrors(page)
+  await page.goto('/')
+  await expect(page.locator('.cm-content')).toContainText('Welcome to Zenpad')
+  await page.keyboard.press('ControlOrMeta+Alt+KeyN')
+  await expect(page.locator('.cm-content')).not.toContainText('Welcome to Zenpad')
+
+  await page.locator('.cm-content').click()
+  await page.keyboard.insertText('Reviewing PR $PR{482} today. Link: pull/$PR')
+  await page.locator('.cm-variable', { hasText: '$PR' }).last().click({ modifiers: ['ControlOrMeta'] })
+  await page.keyboard.type('517')
+
+  await page.keyboard.press('ControlOrMeta+KeyE')
+  await expect(page.locator('.preview-host .cm-content')).toHaveText('Reviewing PR 517 today. Link: pull/517')
+  expect(errors).toEqual([])
+})
