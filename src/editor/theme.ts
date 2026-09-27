@@ -112,7 +112,7 @@ const zenTheme = EditorView.theme({
   },
   '.cm-completionInfo': { display: 'none' },
   '.cm-tooltip.cm-tooltip-autocomplete > ul > completion-section': { display: 'none' },
-  '.cm-snippet-tooltip': { padding: '12px 14px', maxWidth: 'min(420px, 86vw)' },
+  '.cm-snippet-tooltip': { padding: '12px 14px', maxWidth: 'min(420px, 86vw)', cursor: 'pointer' },
   '.cm-snippet-tooltip-name': { fontWeight: '600', color: 'var(--accent-ink)', fontSize: '13px', marginBottom: '6px' },
   '.cm-snippet-tooltip-body': {
     fontSize: '14px',

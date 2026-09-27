@@ -980,6 +980,72 @@ kbd {
   }
 }
 
+/* Matches the @snippet hover tooltip in the editor. */
+.user-peek {
+  position: fixed;
+  z-index: 20;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-raised);
+  box-shadow: var(--shadow-pop);
+  cursor: pointer;
+  outline: none;
+  animation: fade-in 0.12s var(--ease);
+}
+
+.user-peek-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.user-peek-title.is-snippet {
+  color: var(--accent-ink);
+}
+
+.user-peek-title svg {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+.user-peek-title span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-peek-body {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 8;
+}
+
+.user-peek-chip {
+  padding: 0.08em 0.28em;
+  border-radius: 5px;
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+  font-weight: 550;
+}
+
+.user-peek-hint {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--faint);
+}
+
 .page[data-kind='snippet'] .cm-scroller {
   padding-top: 24px;
 }

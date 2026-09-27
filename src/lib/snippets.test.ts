@@ -10,6 +10,7 @@ import {
   expandSnippets,
   type ExpansionPart,
   isValidSnippetName,
+  referenceExcerpt,
   referencedSnippetNames,
   renameSnippetReferences,
   snippetAncestors,
@@ -343,5 +344,24 @@ describe('snippetUsers', () => {
 
   it('finds nothing for a snippet no one uses', () => {
     expect(snippetUsers('other', notes, snippets)).toEqual({ notes: [], snippets: [] })
+  })
+})
+
+describe('referenceExcerpt', () => {
+  it('returns the text on either side of the first mention', () => {
+    expect(referenceExcerpt('Hi there. @tone Thanks! @tone', 'tone')).toEqual({ before: 'Hi there. ', after: ' Thanks! @tone', count: 2 })
+  })
+
+  it('returns null when the snippet is not mentioned', () => {
+    expect(referenceExcerpt('Email me@tone.com or @toner', 'tone')).toBeNull()
+  })
+
+  it('clips long text to whole words', () => {
+    const excerpt = referenceExcerpt('alpha bravo charlie delta @tone echo foxtrot golf hotel', 'tone', 12)
+    expect(excerpt).toEqual({ before: '…delta ', after: ' echo…', count: 1 })
+  })
+
+  it('collapses runs of blank lines', () => {
+    expect(referenceExcerpt('\n\nTop\n\n\n\n@tone', 'tone')?.before).toBe('Top\n\n')
   })
 })
