@@ -335,6 +335,28 @@ kbd {
   }
 }
 
+.section-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.sort-button {
+  padding: 3px 7px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--faint);
+  transition: background-color 0.15s, color 0.15s;
+}
+
+@media (hover: hover) {
+  .sort-button:hover {
+    background: var(--line);
+    color: var(--ink);
+  }
+}
+
 .favorite-button.is-favorite {
   color: #c9962e;
 }
@@ -409,7 +431,46 @@ kbd {
   padding: 6px 12px;
 }
 
+.snippet-node {
+  position: relative;
+}
+
+.snippet-node > .snippet-item {
+  padding-left: calc(12px + var(--depth) * 14px);
+}
+
+/* Hangs in the row's left padding, like the section toggles. */
+.snippet-twisty {
+  position: absolute;
+  z-index: 1;
+  top: 7px;
+  left: calc(var(--depth) * 14px - 3px);
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 20px;
+  border-radius: 5px;
+  color: var(--muted);
+  transition: color 0.15s;
+}
+
+@media (hover: hover) {
+  .snippet-twisty:hover {
+    color: var(--ink);
+  }
+}
+
+.snippet-twisty svg {
+  transition: transform 0.2s var(--ease);
+}
+
+.snippet-twisty[aria-expanded='true'] svg {
+  transform: rotate(90deg);
+}
+
 .snippet-name {
+  flex: 1;
+  min-width: 0;
   font-weight: 550;
   color: var(--accent-ink);
   overflow: hidden;
@@ -1113,6 +1174,88 @@ kbd {
   justify-content: flex-end;
   gap: 8px;
   margin-top: 22px;
+}
+
+.primary-button {
+  padding: 8px 16px;
+  border-radius: 9px;
+  font-weight: 600;
+  color: var(--surface-raised);
+  background: var(--accent);
+  transition: filter 0.15s, transform 0.1s, opacity 0.15s;
+}
+
+@media (hover: hover) {
+  .primary-button:hover {
+    filter: brightness(1.08);
+  }
+}
+
+.primary-button:active {
+  transform: scale(0.97);
+}
+
+.primary-button:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.extract-preview {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  max-height: 7.5em;
+  overflow: hidden;
+  border-left: 2px solid var(--accent-wash-strong);
+  border-radius: 0 8px 8px 0;
+  background: var(--accent-wash);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.dialog-field {
+  display: flex;
+  align-items: baseline;
+  gap: 1px;
+  margin-top: 16px;
+  padding: 8px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  color: var(--accent-ink);
+  font-weight: 600;
+  cursor: text;
+  transition: border-color 0.15s;
+}
+
+.dialog-field:focus-within {
+  border-color: var(--accent);
+}
+
+.dialog-field span {
+  color: var(--faint);
+}
+
+.dialog-field input {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  outline: none;
+}
+
+.dialog-field input:focus-visible {
+  outline: none;
+}
+
+.dialog .dialog-error {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--danger);
 }
 
 .danger-button {

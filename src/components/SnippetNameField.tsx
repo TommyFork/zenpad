@@ -1,14 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
+import { typedSnippetName } from '../lib/snippets'
 
 interface SnippetNameFieldProps {
   name: string
   autoFocus: boolean
   onRename: (name: string) => Promise<string>
   onDone: () => void
-}
-
-function allowedCharacters(input: string): string {
-  return input.toLowerCase().replace(/\s/g, '-').replace(/[^a-z0-9_-]/g, '')
 }
 
 export function SnippetNameField({ name, autoFocus, onRename, onDone }: SnippetNameFieldProps) {
@@ -40,7 +37,7 @@ export function SnippetNameField({ name, autoFocus, onRename, onDone }: SnippetN
         spellCheck={false}
         autoComplete="off"
         aria-label="Snippet name"
-        onChange={(event) => setDraft(allowedCharacters(event.target.value))}
+        onChange={(event) => setDraft(typedSnippetName(event.target.value))}
         onBlur={commit}
         onKeyDown={(event) => {
           if (event.key === 'Escape') discardOnBlur.current = true

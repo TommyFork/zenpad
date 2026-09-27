@@ -1,0 +1,10 @@
+import { useCallback, useRef } from 'react'
+import type { EditorHandle, EditorSelection } from './Editor'
+
+// Lets the app read and replace the editor's selection from commands and dialogs.
+export function useEditorHandle() {
+  const ref = useRef<EditorHandle>(null)
+  const selection = useCallback(() => ref.current?.selection() ?? null, [])
+  const replace = useCallback((range: EditorSelection, insert: string) => ref.current?.replace(range, insert) ?? false, [])
+  return { ref, selection, replace }
+}
