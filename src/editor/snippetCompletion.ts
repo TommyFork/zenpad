@@ -1,6 +1,7 @@
 import { autocompletion, type Completion, type CompletionContext, type CompletionResult } from '@codemirror/autocomplete'
 import type { EditorView } from '@codemirror/view'
 import { isValidSnippetName } from '../lib/snippets'
+import { variableCompletionSource } from './noteVariables'
 import { snippetBodiesField } from './snippetState'
 
 const DETAIL_LENGTH = 60
@@ -47,5 +48,11 @@ export function snippetCompletion(onCreateSnippet: (name: string) => void) {
     return { from: typed.from, options }
   }
 
-  return autocompletion({ override: [source], icons: false, closeOnBlur: true, maxRenderedOptions: 40 })
+  return autocompletion({
+    override: [source, variableCompletionSource],
+    optionClass: (completion) => (completion.type === 'variable' ? 'cm-completion-variable' : ''),
+    icons: false,
+    closeOnBlur: true,
+    maxRenderedOptions: 40,
+  })
 }

@@ -6,6 +6,7 @@ import { highlightSelectionMatches, search, searchKeymap } from '@codemirror/sea
 import { EditorState, Prec, type Extension } from '@codemirror/state'
 import { drawSelection, EditorView, keymap, placeholder, tooltips } from '@codemirror/view'
 import { extractTooltip } from './extractTooltip'
+import { noteVariables } from './noteVariables'
 import { snippetChips } from './snippetChips'
 import { snippetCompletion } from './snippetCompletion'
 import { setSnippetBodies, snippetBodiesField, type SnippetBodies } from './snippetState'
@@ -123,6 +124,7 @@ export function Editor({ ref, document, snippets, placeholderText, onChange, onO
       snippetBodiesField,
       snippetChips((name) => callbacks.current.onOpenSnippet(name)),
       snippetCompletion((name) => callbacks.current.onCreateSnippet(name)),
+      noteVariables,
       extractTooltip(() => callbacks.current.onExtract()),
       EditorView.contentAttributes.of({ spellcheck: 'true', autocapitalize: 'sentences', 'aria-label': 'Note' }),
       EditorView.updateListener.of((update) => {

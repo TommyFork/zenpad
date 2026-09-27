@@ -5,7 +5,8 @@ import { EditorState, RangeSetBuilder } from '@codemirror/state'
 import { Decoration, EditorView, placeholder, WidgetType, type DecorationSet } from '@codemirror/view'
 import { hasModifier, MOD_LABEL } from '../app/keys'
 import { useEscape } from '../app/useEscape'
-import { expandSnippetParts, flattenExpansion, type ExpansionSpan } from '../lib/snippets'
+import { flattenExpansion, type ExpansionSpan } from '../lib/snippets'
+import { fillInParts } from '../lib/variables'
 import { zenAppearance } from '../editor/theme'
 
 interface NotePreviewProps {
@@ -46,7 +47,9 @@ function spanDecorations(spans: ExpansionSpan[], highlights: boolean): Decoratio
   const sorted = [...spans].sort((a, b) => a.from - b.from)
   for (const span of sorted) {
     if (!highlights && span.kind !== 'snippet') continue
-    if (span.kind === 'empty') {
+    if (span.kind === 'variable') {
+      if (span.from < span.to) builder.add(span.from, span.to, Decoration.mark({ class: 'cm-preview-variable', attributes: { title: `$${span.name}` } }))
+    } else if (span.kind === 'empty') {
       builder.add(span.from, span.to, Decoration.widget({ widget: new EmptyChip(span.name), side: 1 }))
     } else if (span.kind === 'unresolved') {
       const reason = "Isn't a snippet yet, so it's copied as written"
@@ -58,13 +61,13 @@ function spanDecorations(spans: ExpansionSpan[], highlights: boolean): Decoratio
   return builder.finish()
 }
 
-// A read-only view of the note exactly as it would be copied, with every @snippet filled in.
+// A read-only view of the note exactly as it would be copied, with every @snippet and $variable filled in.
 // It uses the editor's own layout and markdown styling so switching to it doesn't move the page.
 export function NotePreview({ text, snippets, highlights, onOpenSnippet, onExit }: NotePreviewProps) {
   const hostRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
   const openRef = useRef(onOpenSnippet)
-  const expansion = useMemo(() => flattenExpansion(expandSnippetParts(text, snippets)), [text, snippets])
+  const expansion = useMemo(() => flattenExpansion(fillInParts(text, snippets)), [text, snippets])
 
   useEscape(onExit)
 

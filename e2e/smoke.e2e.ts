@@ -41,6 +41,9 @@ test('keeps what you write after a reload', async ({ page }) => {
   // Wait out the autosave delay before reloading.
   await page.waitForTimeout(1000)
   await page.reload()
+  // The editor only renders lines near the viewport, so bring the end of the note into view.
+  await page.locator('.cm-content').click()
+  await page.keyboard.press('ControlOrMeta+End')
   await expect(page.locator('.cm-content')).toContainText('Saved by the smoke test')
 })
 
@@ -133,5 +136,44 @@ test('deletes a snippet from the sidebar without leaving the open note', async (
   await page.getByRole('button', { name: 'Undo' }).click()
   await expect(snippet).toHaveCount(1)
   await expect(editor).toContainText('Welcome to Zenpad')
+  expect(errors).toEqual([])
+})
+
+test('fills in note variables and jumps to where one is set', async ({ page }) => {
+  const errors = watchForErrors(page)
+  await page.goto('/')
+  await expect(page.locator('.cm-content')).toContainText('Welcome to Zenpad')
+
+  await page.keyboard.press('ControlOrMeta+Alt+KeyN')
+  await expect(page.locator('.cm-content')).not.toContainText('Welcome to Zenpad')
+  await page.locator('.cm-content').click()
+  await page.keyboard.insertText('$branch = fix/login\n\nCheckout $branch, then rebase $branch.')
+  await expect(page.locator('.cm-variable', { hasText: '$branch' })).toHaveCount(3)
+
+  // ⌘ click selects the value, so typing replaces it everywhere.
+  await page.locator('.cm-variable', { hasText: '$branch' }).last().click({ modifiers: ['ControlOrMeta'] })
+  await page.keyboard.type('feat/signup')
+
+  await page.keyboard.press('ControlOrMeta+KeyE')
+  const preview = page.locator('.preview-host .cm-content')
+  await expect(preview).toHaveText('Checkout feat/signup, then rebase feat/signup.')
+  await expect(page.locator('.cm-preview-variable')).toHaveCount(2)
+  expect(errors).toEqual([])
+})
+
+test('sets a variable inline and fills it in where it was set', async ({ page }) => {
+  const errors = watchForErrors(page)
+  await page.goto('/')
+  await expect(page.locator('.cm-content')).toContainText('Welcome to Zenpad')
+  await page.keyboard.press('ControlOrMeta+Alt+KeyN')
+  await expect(page.locator('.cm-content')).not.toContainText('Welcome to Zenpad')
+
+  await page.locator('.cm-content').click()
+  await page.keyboard.insertText('Reviewing PR $PR{482} today. Link: pull/$PR')
+  await page.locator('.cm-variable', { hasText: '$PR' }).last().click({ modifiers: ['ControlOrMeta'] })
+  await page.keyboard.type('517')
+
+  await page.keyboard.press('ControlOrMeta+KeyE')
+  await expect(page.locator('.preview-host .cm-content')).toHaveText('Reviewing PR 517 today. Link: pull/517')
   expect(errors).toEqual([])
 })
