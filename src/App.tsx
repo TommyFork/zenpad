@@ -513,6 +513,7 @@ export default function App() {
             peekHeld.current = false
             endPeek()
           }}
+          onNewNote={() => void workspace.newNote()}
           onReturn={() => workspace.returnTo && open(workspace.returnTo)}
           onTogglePreview={togglePreview}
           onCopy={() => void workspace.copyCurrent()}
