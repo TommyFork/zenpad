@@ -33,7 +33,7 @@ import {
   setNoteFavorite,
 } from './lib/library'
 import { notePreview, noteTitle } from './lib/notes'
-import { useSettings, type EditorFont, type SidebarSection, type Theme } from './lib/settings'
+import { useSettings, type Accent, type EditorFont, type SidebarSection, type Theme } from './lib/settings'
 import {
   describeUses,
   expandSnippets,
@@ -93,6 +93,11 @@ function applyTheme(theme: Theme) {
   else document.documentElement.dataset.theme = theme
 }
 
+function applyAccent(accent: Accent) {
+  if (accent === 'lake') delete document.documentElement.dataset.accent
+  else document.documentElement.dataset.accent = accent
+}
+
 export default function App() {
   const [settings, updateSettings] = useSettings()
   const library = useLibrary()
@@ -139,6 +144,7 @@ export default function App() {
   }, [workspace.openInitialDocument, showToast])
 
   useEffect(() => applyTheme(settings.theme), [settings.theme])
+  useEffect(() => applyAccent(settings.accent), [settings.accent])
 
   const stopPeek = useCallback(() => {
     window.clearTimeout(peekTimer.current)

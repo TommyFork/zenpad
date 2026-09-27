@@ -16,10 +16,11 @@
   --line-strong: rgba(42, 40, 36, 0.16);
   --accent: #4a72ad;
   --accent-ink: #355e99;
-  --accent-wash: rgba(74, 114, 173, 0.11);
-  --accent-wash-strong: rgba(74, 114, 173, 0.19);
-  --caret: #4a72ad;
-  --selection: rgba(74, 114, 173, 0.2);
+  --accent-rgb: 74 114 173;
+  --accent-wash: rgb(var(--accent-rgb) / 0.11);
+  --accent-wash-strong: rgb(var(--accent-rgb) / 0.19);
+  --caret: var(--accent);
+  --selection: rgb(var(--accent-rgb) / 0.2);
   --highlight: rgba(222, 178, 80, 0.3);
   --highlight-strong: rgba(222, 178, 80, 0.55);
   --code-ink: #7a5236;
@@ -58,10 +59,11 @@
     --line-strong: rgba(255, 250, 240, 0.14);
     --accent: #8fb3e3;
     --accent-ink: #a6c4ec;
-    --accent-wash: rgba(143, 179, 227, 0.14);
-    --accent-wash-strong: rgba(143, 179, 227, 0.24);
-    --caret: #a6c4ec;
-    --selection: rgba(143, 179, 227, 0.24);
+    --accent-rgb: 143 179 227;
+    --accent-wash: rgb(var(--accent-rgb) / 0.14);
+    --accent-wash-strong: rgb(var(--accent-rgb) / 0.24);
+    --caret: var(--accent-ink);
+    --selection: rgb(var(--accent-rgb) / 0.24);
     --highlight: rgba(222, 178, 80, 0.22);
     --highlight-strong: rgba(222, 178, 80, 0.42);
     --code-ink: #e0b48f;
@@ -88,10 +90,11 @@
   --line-strong: rgba(255, 250, 240, 0.14);
   --accent: #8fb3e3;
   --accent-ink: #a6c4ec;
-  --accent-wash: rgba(143, 179, 227, 0.14);
-  --accent-wash-strong: rgba(143, 179, 227, 0.24);
-  --caret: #a6c4ec;
-  --selection: rgba(143, 179, 227, 0.24);
+  --accent-rgb: 143 179 227;
+  --accent-wash: rgb(var(--accent-rgb) / 0.14);
+  --accent-wash-strong: rgb(var(--accent-rgb) / 0.24);
+  --caret: var(--accent-ink);
+  --selection: rgb(var(--accent-rgb) / 0.24);
   --highlight: rgba(222, 178, 80, 0.22);
   --highlight-strong: rgba(222, 178, 80, 0.42);
   --code-ink: #e0b48f;
@@ -102,6 +105,82 @@
   --shadow-pop: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -8px rgba(0, 0, 0, 0.6);
   --shadow-dialog: 0 2px 6px rgba(0, 0, 0, 0.3), 0 30px 80px -20px rgba(0, 0, 0, 0.75);
   color-scheme: dark;
+}
+
+/* Accent colors. Lake (blue) is the default above; the washes, caret and
+   selection all derive from --accent-rgb. */
+:root[data-accent='sage'] {
+  --accent: #5b8a6b;
+  --accent-ink: #44735a;
+  --accent-rgb: 91 138 107;
+}
+
+:root[data-accent='clay'] {
+  --accent: #bd6f45;
+  --accent-ink: #9f5731;
+  --accent-rgb: 189 111 69;
+}
+
+:root[data-accent='plum'] {
+  --accent: #8a5c9e;
+  --accent-ink: #724688;
+  --accent-rgb: 138 92 158;
+}
+
+:root[data-accent='graphite'] {
+  --accent: #5e6570;
+  --accent-ink: #464c55;
+  --accent-rgb: 94 101 112;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-accent='sage']:not([data-theme='light']) {
+    --accent: #93c2a2;
+    --accent-ink: #aad2b6;
+    --accent-rgb: 147 194 162;
+  }
+
+  :root[data-accent='clay']:not([data-theme='light']) {
+    --accent: #e6a582;
+    --accent-ink: #efbb9d;
+    --accent-rgb: 230 165 130;
+  }
+
+  :root[data-accent='plum']:not([data-theme='light']) {
+    --accent: #c3a2d6;
+    --accent-ink: #d3b8e3;
+    --accent-rgb: 195 162 214;
+  }
+
+  :root[data-accent='graphite']:not([data-theme='light']) {
+    --accent: #aab1ba;
+    --accent-ink: #c2c8cf;
+    --accent-rgb: 170 177 186;
+  }
+}
+
+:root[data-accent='sage'][data-theme='dark'] {
+  --accent: #93c2a2;
+  --accent-ink: #aad2b6;
+  --accent-rgb: 147 194 162;
+}
+
+:root[data-accent='clay'][data-theme='dark'] {
+  --accent: #e6a582;
+  --accent-ink: #efbb9d;
+  --accent-rgb: 230 165 130;
+}
+
+:root[data-accent='plum'][data-theme='dark'] {
+  --accent: #c3a2d6;
+  --accent-ink: #d3b8e3;
+  --accent-rgb: 195 162 214;
+}
+
+:root[data-accent='graphite'][data-theme='dark'] {
+  --accent: #aab1ba;
+  --accent-ink: #c2c8cf;
+  --accent-rgb: 170 177 186;
 }
 
 *,
@@ -580,6 +659,7 @@ kbd {
 .sidebar-foot {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 4px;
   padding: 8px;
   border-top: 1px solid var(--line);
@@ -587,7 +667,6 @@ kbd {
 
 .foot-button {
   display: flex;
-  flex: 1;
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
@@ -1260,6 +1339,92 @@ kbd {
 .segmented .font-mono {
   font-family: var(--mono-font);
   font-size: 12.5px;
+}
+
+.swatches {
+  display: inline-flex;
+  gap: 10px;
+  padding: 3px;
+}
+
+.swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--swatch);
+  box-shadow: 0 0 0 0 var(--surface-raised), 0 0 0 0 var(--swatch);
+  transition: box-shadow 0.2s var(--ease), transform 0.2s var(--ease);
+}
+
+.swatch:hover {
+  transform: scale(1.08);
+}
+
+.swatch[aria-checked='true'] {
+  box-shadow: 0 0 0 2px var(--surface-raised), 0 0 0 4px var(--swatch);
+}
+
+/* Each swatch shows its accent as it looks in the current theme. */
+.swatch-lake {
+  --swatch: #4a72ad;
+}
+
+.swatch-sage {
+  --swatch: #5b8a6b;
+}
+
+.swatch-clay {
+  --swatch: #bd6f45;
+}
+
+.swatch-plum {
+  --swatch: #8a5c9e;
+}
+
+.swatch-graphite {
+  --swatch: #5e6570;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .swatch-lake {
+    --swatch: #8fb3e3;
+  }
+
+  :root:not([data-theme='light']) .swatch-sage {
+    --swatch: #93c2a2;
+  }
+
+  :root:not([data-theme='light']) .swatch-clay {
+    --swatch: #e6a582;
+  }
+
+  :root:not([data-theme='light']) .swatch-plum {
+    --swatch: #c3a2d6;
+  }
+
+  :root:not([data-theme='light']) .swatch-graphite {
+    --swatch: #aab1ba;
+  }
+}
+
+:root[data-theme='dark'] .swatch-lake {
+  --swatch: #8fb3e3;
+}
+
+:root[data-theme='dark'] .swatch-sage {
+  --swatch: #93c2a2;
+}
+
+:root[data-theme='dark'] .swatch-clay {
+  --swatch: #e6a582;
+}
+
+:root[data-theme='dark'] .swatch-plum {
+  --swatch: #c3a2d6;
+}
+
+:root[data-theme='dark'] .swatch-graphite {
+  --swatch: #aab1ba;
 }
 
 .settings-section {

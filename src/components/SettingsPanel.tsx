@@ -1,4 +1,4 @@
-import type { EditorFont, Settings, Theme } from '../lib/settings'
+import type { Accent, EditorFont, Settings, Theme } from '../lib/settings'
 import { useEscape } from '../app/useEscape'
 import { Icon } from './Icon'
 
@@ -18,6 +18,35 @@ const FONTS: Choice<EditorFont>[] = [
   { value: 'sans', label: 'Sans' },
   { value: 'mono', label: 'Mono' },
 ]
+
+const ACCENTS: Choice<Accent>[] = [
+  { value: 'lake', label: 'Lake' },
+  { value: 'sage', label: 'Sage' },
+  { value: 'clay', label: 'Clay' },
+  { value: 'plum', label: 'Plum' },
+  { value: 'graphite', label: 'Graphite' },
+]
+
+function Swatches({ value, onChange }: { value: Accent; onChange: (value: Accent) => void }) {
+  return (
+    <div className="setting-row">
+      <span className="setting-label">Accent</span>
+      <div className="swatches" role="radiogroup" aria-label="Accent">
+        {ACCENTS.map((choice) => (
+          <button
+            key={choice.value}
+            role="radio"
+            aria-checked={choice.value === value}
+            aria-label={choice.label}
+            title={choice.label}
+            className={`swatch swatch-${choice.value}`}
+            onClick={() => onChange(choice.value)}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
 
 function Segmented<T extends string>({ label, choices, value, onChange }: { label: string; choices: Choice<T>[]; value: T; onChange: (value: T) => void }) {
   return (
@@ -65,6 +94,7 @@ export function SettingsPanel({ settings, storagePersisted, noteCount, snippetCo
         </div>
 
         <Segmented label="Theme" choices={THEMES} value={settings.theme} onChange={(theme) => onChange({ theme })} />
+        <Swatches value={settings.accent} onChange={(accent) => onChange({ accent })} />
         <Segmented label="Writing font" choices={FONTS} value={settings.font} onChange={(font) => onChange({ font })} />
 
         <div className="settings-section">

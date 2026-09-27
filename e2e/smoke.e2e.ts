@@ -54,6 +54,18 @@ test('loads offline once the service worker is installed', async ({ page, contex
   await expect(page.locator('.cm-content')).toContainText('Welcome to Zenpad')
 })
 
+test('remembers the accent color picked in settings', async ({ page }) => {
+  await page.goto('/')
+  await expect(page.locator('.cm-content')).toContainText('Welcome to Zenpad')
+
+  await page.getByRole('button', { name: 'Settings' }).click()
+  await page.getByRole('radio', { name: 'Sage' }).click()
+  await expect(page.locator('html')).toHaveAttribute('data-accent', 'sage')
+
+  await page.reload()
+  await expect(page.locator('html')).toHaveAttribute('data-accent', 'sage')
+})
+
 test('shows where a snippet is used and maps it', async ({ page }) => {
   const errors = watchForErrors(page)
   await page.goto('/')
