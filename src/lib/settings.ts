@@ -17,6 +17,8 @@ export interface Settings {
   collapsedSections: SidebarSection[]
   // Splits the Notes list under headings like Today, Yesterday, and Previous 7 days.
   noteGrouping: NoteGrouping
+  // Date groups hidden in the Notes list, by label (e.g. "Yesterday").
+  collapsedNoteGroups: string[]
   snippetSort: SnippetSort
   // Snippets whose nested snippets are shown in the sidebar, by id.
   expandedSnippets: string[]
@@ -32,6 +34,7 @@ const DEFAULT_SETTINGS: Settings = {
   previewHighlights: true,
   collapsedSections: [],
   noteGrouping: 'date',
+  collapsedNoteGroups: [],
   snippetSort: 'name',
   expandedSnippets: [],
 }
