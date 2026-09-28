@@ -26,7 +26,7 @@ Zenpad was built for writing AI prompts, but it works for any writing where you 
 - **$variables.** Set `$branch = fix/login` once, or inline as `$branch{fix/login}`, and use `$branch` anywhere in the note. Snippets can use them too.
 - **Preview and copy.** See the note exactly as it will be copied, with every snippet and variable filled in.
 - **Snippet map.** An interactive graph of your snippets and the notes that use them.
-- **Grouped by date.** Show the sidebar's notes under Today, Yesterday, Previous 7 days, Previous 30 days, then by month and year. Switch with the button beside Notes, or in Settings.
+- **Grouped by date.** The sidebar lists notes under Today, Yesterday, Previous 7 days, Previous 30 days, then by month and year. Switch to one list with the button beside Notes, or in Settings.
 - **Search and commands.** `⌘ K` finds any note or snippet and runs any command.
 - **Private by design.** No server, no accounts, no analytics, and a strict Content Security Policy that blocks network requests.
 - **Works offline.** Install it as an app (PWA). Light and dark themes, plus serif, sans, and mono fonts.

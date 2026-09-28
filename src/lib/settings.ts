@@ -31,7 +31,7 @@ const DEFAULT_SETTINGS: Settings = {
   sidebarOpen: true,
   previewHighlights: true,
   collapsedSections: [],
-  noteGrouping: 'none',
+  noteGrouping: 'date',
   snippetSort: 'name',
   expandedSnippets: [],
 }

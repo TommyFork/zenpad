@@ -187,14 +187,15 @@ test('groups notes by date in the sidebar', async ({ page }) => {
   await page.locator('.cm-content').click()
   await page.keyboard.type('Grouped note')
 
+  // Grouping by date is the default.
   const notes = page.locator('#sidebar-section-notes')
-  await page.getByRole('button', { name: /Notes shown as one list/ }).click()
   await expect(notes.getByRole('group', { name: 'Today' })).toContainText('Grouped note')
 
-  // The choice is remembered across reloads.
-  await page.reload()
-  await expect(notes.getByRole('group', { name: 'Today' })).toBeVisible()
+  // Switching to one list is remembered across reloads.
   await page.getByRole('button', { name: /Notes shown grouped by date/ }).click()
+  await expect(notes.getByRole('group')).toHaveCount(0)
+  await page.reload()
+  await expect(notes.getByRole('button', { name: /^Grouped note/ })).toBeVisible()
   await expect(notes.getByRole('group')).toHaveCount(0)
   expect(errors).toEqual([])
 })
