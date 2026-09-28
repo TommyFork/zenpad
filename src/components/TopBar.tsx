@@ -12,6 +12,7 @@ interface TopBarProps {
   onShowSidebar: () => void
   onPeekSidebar: () => void
   onEndPeek: () => void
+  onNewNote: () => void
   onReturn: () => void
   onTogglePreview: () => void
   onCopy: () => void
@@ -28,6 +29,7 @@ export function TopBar({
   onShowSidebar,
   onPeekSidebar,
   onEndPeek,
+  onNewNote,
   onReturn,
   onTogglePreview,
   onCopy,
@@ -38,16 +40,21 @@ export function TopBar({
     <header className="topbar">
       <div className="topbar-start">
         {!sidebarOpen && (
-          <button
-            className="icon-button"
-            onClick={onShowSidebar}
-            onPointerEnter={(event) => event.pointerType === 'mouse' && onPeekSidebar()}
-            onPointerLeave={onEndPeek}
-            aria-label="Show sidebar"
-            title={`Show sidebar  ${MOD_LABEL} \\`}
-          >
-            <Icon name="sidebar" />
-          </button>
+          <>
+            <button
+              className="icon-button"
+              onClick={onShowSidebar}
+              onPointerEnter={(event) => event.pointerType === 'mouse' && onPeekSidebar()}
+              onPointerLeave={onEndPeek}
+              aria-label="Show sidebar"
+              title={`Show sidebar  ${MOD_LABEL} \\`}
+            >
+              <Icon name="sidebar" />
+            </button>
+            <button className="icon-button" onClick={onNewNote} aria-label="New note" title={`New note  ${MOD_LABEL} ⌥ N`}>
+              <Icon name="compose" />
+            </button>
+          </>
         )}
         {returnTo && (
           <button className="back-link" onClick={onReturn} title="Back to your note">

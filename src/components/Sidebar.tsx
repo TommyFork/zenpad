@@ -133,18 +133,20 @@ export function Sidebar({
           const preview = notePreview(note.body)
           return (
             <li key={note.id} className="doc-row">
-              <button
-                className="doc-item"
-                aria-current={isSameDocument(openDoc, doc) ? 'page' : undefined}
-                onClick={() => onOpen(doc)}
-              >
-                <span className="doc-item-row">
-                  <span className={note.body.trim() ? 'doc-title' : 'doc-title is-empty'}>{noteTitle(note.body)}</span>
-                  <time className="doc-time">{formatRelativeTime(note.updatedAt, now)}</time>
-                </span>
-                {preview && <span className="doc-preview">{preview}</span>}
-              </button>
-              {deleteButton(doc, `note “${noteTitle(note.body)}”`)}
+              <div className="doc-entry">
+                <button
+                  className="doc-item"
+                  aria-current={isSameDocument(openDoc, doc) ? 'page' : undefined}
+                  onClick={() => onOpen(doc)}
+                >
+                  <span className="doc-item-row">
+                    <span className={note.body.trim() ? 'doc-title' : 'doc-title is-empty'}>{noteTitle(note.body)}</span>
+                    <time className="doc-time">{formatRelativeTime(note.updatedAt, now)}</time>
+                  </span>
+                  {preview && <span className="doc-preview">{preview}</span>}
+                </button>
+                {deleteButton(doc, `note “${noteTitle(note.body)}”`)}
+              </div>
             </li>
           )
         })}
@@ -171,18 +173,20 @@ export function Sidebar({
             <Icon name="chevron" size={12} />
           </button>
         )}
-        <button
-          className="doc-item snippet-item"
-          aria-current={isSameDocument(openDoc, doc) ? 'page' : undefined}
-          onClick={() => onOpen(doc)}
-        >
-          <span className="doc-item-row">
-            <span className="snippet-name">@{snippet.name}</span>
-            {snippetSort === 'references' && <span className="doc-time">{usageLabel(uses)}</span>}
-            {snippetSort === 'edited' && <time className="doc-time">{formatRelativeTime(snippet.updatedAt, now)}</time>}
-          </span>
-        </button>
-        {deleteButton(doc, `snippet @${snippet.name}`)}
+        <div className="doc-entry">
+          <button
+            className="doc-item snippet-item"
+            aria-current={isSameDocument(openDoc, doc) ? 'page' : undefined}
+            onClick={() => onOpen(doc)}
+          >
+            <span className="doc-item-row">
+              <span className="snippet-name">@{snippet.name}</span>
+              {snippetSort === 'references' && <span className="doc-time">{usageLabel(uses)}</span>}
+              {snippetSort === 'edited' && <time className="doc-time">{formatRelativeTime(snippet.updatedAt, now)}</time>}
+            </span>
+          </button>
+          {deleteButton(doc, `snippet @${snippet.name}`)}
+        </div>
         {expanded && (
           <ul id={childrenId} className="doc-list">
             {children.map((child) => snippetItem(child, depth + 1))}

@@ -7,6 +7,7 @@ import { hasModifier, MOD_LABEL } from '../app/keys'
 import { useEscape } from '../app/useEscape'
 import { flattenExpansion, type ExpansionSpan } from '../lib/snippets'
 import { fillInParts } from '../lib/variables'
+import { replaceState } from '../editor/replaceState'
 import { zenAppearance } from '../editor/theme'
 
 interface NotePreviewProps {
@@ -92,7 +93,8 @@ export function NotePreview({ text, snippets, highlights, onOpenSnippet, onExit 
     const view = viewRef.current
     if (!view) return
     const scrollTop = view.scrollDOM.scrollTop
-    view.setState(
+    replaceState(
+      view,
       EditorState.create({
         doc: expansion.text,
         extensions: [
