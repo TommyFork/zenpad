@@ -32,6 +32,7 @@ Where things live:
 - **Storage.** `src/lib/db.ts` defines the Dexie schema (`notes`, `snippets`, `meta`). `src/lib/library.ts` holds all reads and writes; UI code should go through it rather than calling `db` directly where a helper exists.
 - **Snippets.** `src/lib/snippets.ts` owns the `@name` token pattern, name validation, expansion (with loop detection), and renaming references. Keep snippet rules there so the editor, preview, copy, and graph all agree.
 - **Settings.** UI preferences and the last opened document live in `localStorage` (`src/lib/settings.ts`), not IndexedDB. New settings need a default in `DEFAULT_SETTINGS`, since stored settings are merged over the defaults.
+- **Sample data.** `src/lib/sampleData.ts` holds the test library. The "Add sample data" command shows in dev and in `--mode sample` builds (`.env.sample` sets `VITE_SAMPLE_DATA`), and is compiled out of production. Keep it covering edge cases when you add features.
 - **Backups.** `src/lib/backup.ts` defines the export format (`format: 'zenpad-backup'`, `version: 1`). Importing merges, and the newer copy of each note or snippet wins.
 
 ## Commands
@@ -45,6 +46,7 @@ npm run typecheck  # TypeScript (tsc -b, covers app, node config, and e2e)
 npm run lint       # oxlint (CI runs it with --deny-warnings)
 npm test           # unit tests (Vitest)
 npm run build      # production build in dist/
+npm run build:sample  # production build that seeds sample data on first launch (what PR previews deploy)
 npm run preview    # serve dist/ locally
 npm run test:e2e   # Playwright smoke tests of the production build (run after npm run build)
 ```
@@ -62,7 +64,7 @@ Before opening a PR, run `npm run typecheck`, `npm run lint`, `npm test`, `npm r
 - **check**: typecheck, lint with `--deny-warnings`, unit tests, and `npm audit --omit=dev --audit-level=high`.
 - **build**: production build, then the Playwright smoke tests (console errors, CSP violations, persistence across reload, offline load, snippet map).
 - **node-compat** (`main` only): unit tests and build on Node 20.19 and 22.
-- **preview** (PRs from this repo): deploys to `https://pr-<number>.zenpad.pages.dev` and comments the link on the PR.
+- **preview** (PRs from this repo): deploys to `https://pr-<number>.zenpad.pages.dev` and comments the link on the PR. The preview is the same build made with `--mode sample`, so a fresh visit starts with sample notes and snippets; run "Add sample data" from the command palette to add them again.
 - **deploy** (`main` only): deploys the exact `dist/` the smoke tests ran against.
 
 `.github/workflows/pr-title.yml` checks PR titles (see below). `.github/workflows/claude.yml` runs Claude Code when someone mentions `@claude` on an issue or PR. Dependabot opens weekly grouped updates for npm and GitHub Actions.

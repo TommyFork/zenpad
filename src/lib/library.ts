@@ -1,5 +1,6 @@
 import { db, type Note, type Snippet } from './db'
 import { createBackup, parseBackup, planMerge, type Backup } from './backup'
+import { buildSampleLibrary, SAMPLE_DATA_ON_FIRST_LAUNCH } from './sampleData'
 import { renameSnippetReferences } from './snippets'
 import { WELCOME_NOTE, WELCOME_SNIPPETS } from './welcome'
 
@@ -111,6 +112,19 @@ export async function seedOnFirstLaunch(): Promise<void> {
     await db.meta.put({ key: SEEDED_KEY, value: new Date().toISOString() })
     for (const snippet of WELCOME_SNIPPETS) await createSnippet(snippet.name, snippet.body)
     await createNote(WELCOME_NOTE)
+    if (SAMPLE_DATA_ON_FIRST_LAUNCH) await addSampleData()
+  })
+}
+
+// Adds a spread of notes and snippets for testing. Snippets whose names are already taken are left alone.
+export async function addSampleData(): Promise<ImportResult> {
+  const sample = buildSampleLibrary(Date.now())
+  return db.transaction('rw', db.notes, db.snippets, async () => {
+    const taken = new Set((await db.snippets.toArray()).map((snippet) => snippet.name))
+    const snippets = sample.snippets.filter((snippet) => !taken.has(snippet.name))
+    await db.snippets.bulkAdd(snippets)
+    await db.notes.bulkAdd(sample.notes)
+    return { notes: sample.notes.length, snippets: snippets.length }
   })
 }
 

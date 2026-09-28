@@ -87,6 +87,19 @@ jobs:
           include-hidden-files: true
           retention-days: 7
 
+      # PR previews get the same build with a library of sample notes and snippets seeded on first launch.
+      - name: Build with sample data
+        if: github.event_name == 'pull_request'
+        run: npx vite build --mode sample --outDir dist-sample
+
+      - if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist-sample
+          path: dist-sample/
+          include-hidden-files: true
+          retention-days: 7
+
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [check, node-compat, build]
@@ -117,7 +130,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
 
   # Preview deploys for pull requests. Each PR gets a stable alias at
-  # https://pr-<number>.zenpad.pages.dev that updates on every push.
+  # https://pr-<number>.zenpad.pages.dev that updates on every push, seeded with sample data.
   # PRs from forks have no access to the secrets, so they skip this.
   preview:
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
@@ -136,10 +149,10 @@ jobs:
 
       - run: npm ci
 
-      # Preview the exact files the smoke test ran against.
+      # The smoke-tested build, rebuilt with sample data seeded on first launch (see .env.sample).
       - uses: actions/download-artifact@v8
         with:
-          name: dist
+          name: dist-sample
           path: dist/
 
       - name: Deploy PR preview to Cloudflare
