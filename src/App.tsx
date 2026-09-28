@@ -24,6 +24,7 @@ import { BackupError } from './lib/backup'
 import { downloadJson, pickFile } from './lib/files'
 import type { Note, Snippet } from './lib/db'
 import {
+  addSampleData,
   createSnippet,
   exportLibrary,
   importLibrary,
@@ -33,6 +34,7 @@ import {
   setNoteFavorite,
 } from './lib/library'
 import { notePreview, noteTitle } from './lib/notes'
+import { SAMPLE_DATA_COMMAND } from './lib/sampleData'
 import { useSettings, type Accent, type EditorFont, type NoteGrouping, type SidebarSection, type Theme } from './lib/settings'
 import {
   describeUses,
@@ -333,6 +335,15 @@ export default function App() {
     if (openDoc) await workspace.openDocument(openDoc, { reload: true })
   }
 
+  async function addSamples() {
+    try {
+      const result = await addSampleData()
+      showToast(`Added ${result.notes} sample notes and ${result.snippets} sample snippets.`)
+    } catch (error) {
+      showToast(`Couldn't add sample data: ${String(error)}`)
+    }
+  }
+
   const shortcuts = useRef<(event: KeyboardEvent) => void>(() => {})
   useEffect(() => {
     shortcuts.current = (event) => {
@@ -400,6 +411,7 @@ export default function App() {
     { id: 'export', label: 'Export backup', icon: 'download', run: exportBackup },
     { id: 'import', label: 'Import backup', icon: 'upload', run: importBackup },
     { id: 'settings', label: 'Settings', icon: 'settings', run: () => setSettingsOpen(true) },
+    ...(SAMPLE_DATA_COMMAND ? [{ id: 'sample-data', label: 'Add sample data', icon: 'plus' as const, run: addSamples }] : []),
     { id: 'delete', label: openDoc?.kind === 'snippet' ? 'Delete this snippet' : 'Delete this note', icon: 'trash', run: () => requestDelete() },
   ]
 
