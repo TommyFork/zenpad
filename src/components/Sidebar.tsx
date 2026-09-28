@@ -4,9 +4,9 @@ import { MOD_LABEL } from '../app/keys'
 import { useNow } from '../app/useNow'
 import type { Note, Snippet } from '../lib/db'
 import { notePreview, noteTitle } from '../lib/notes'
-import type { SidebarSection } from '../lib/settings'
+import type { NoteGrouping, SidebarSection } from '../lib/settings'
 import { buildSnippetTree, snippetAncestors, type SnippetNode, type SnippetSort } from '../lib/snippets'
-import { formatRelativeTime } from '../lib/time'
+import { formatRelativeTime, groupByDate } from '../lib/time'
 import { GitHubIcon, Icon } from './Icon'
 
 const RELATIVE_TIME_REFRESH_MS = 30_000
@@ -16,6 +16,11 @@ const SNIPPET_SORTS: { id: SnippetSort; label: string; description: string }[] =
   { id: 'name', label: 'A–Z', description: 'by name' },
   { id: 'references', label: 'Most used', description: 'by most referenced' },
   { id: 'edited', label: 'Recent', description: 'by last edited' },
+]
+
+const NOTE_GROUPINGS: { id: NoteGrouping; label: string; description: string }[] = [
+  { id: 'none', label: 'Recent', description: 'as one list' },
+  { id: 'date', label: 'By date', description: 'grouped by date' },
 ]
 
 function usageLabel(count: number): string {
@@ -31,6 +36,8 @@ interface SidebarProps {
   onToggleSection: (section: SidebarSection) => void
   referenceCounts: ReadonlyMap<string, number>
   snippetParents: ReadonlyMap<string, string>
+  noteGrouping: NoteGrouping
+  onNoteGroupingChange: (grouping: NoteGrouping) => void
   snippetSort: SnippetSort
   onSnippetSortChange: (sort: SnippetSort) => void
   expandedSnippets: string[]
@@ -88,6 +95,8 @@ export function Sidebar({
   onToggleSection,
   referenceCounts,
   snippetParents,
+  noteGrouping,
+  onNoteGroupingChange,
   snippetSort,
   onSnippetSortChange,
   expandedSnippets,
@@ -116,6 +125,9 @@ export function Sidebar({
   const sortIndex = Math.max(0, SNIPPET_SORTS.findIndex((sort) => sort.id === snippetSort))
   const currentSort = SNIPPET_SORTS[sortIndex]
   const nextSort = SNIPPET_SORTS[(sortIndex + 1) % SNIPPET_SORTS.length]
+  const groupingIndex = Math.max(0, NOTE_GROUPINGS.findIndex((grouping) => grouping.id === noteGrouping))
+  const currentGrouping = NOTE_GROUPINGS[groupingIndex]
+  const nextGrouping = NOTE_GROUPINGS[(groupingIndex + 1) % NOTE_GROUPINGS.length]
 
   function deleteButton(doc: DocumentRef, label: string) {
     return (
@@ -152,6 +164,20 @@ export function Sidebar({
         })}
       </ul>
     )
+  }
+
+  function groupedNoteList(list: Note[]) {
+    return groupByDate(list, (note) => note.updatedAt, now).map((group) => {
+      const labelId = `note-group-${group.label.toLowerCase().replaceAll(' ', '-')}`
+      return (
+        <div key={group.label} className="doc-group" role="group" aria-labelledby={labelId}>
+          <h3 id={labelId} className="doc-group-label">
+            {group.label}
+          </h3>
+          {noteList(group.items)}
+        </div>
+      )
+    })
   }
 
   function snippetItem({ snippet, children }: SnippetNode<Snippet>, depth: number) {
@@ -239,12 +265,30 @@ export function Sidebar({
           collapsed={isCollapsed('notes')}
           onToggle={onToggleSection}
           action={
-            <button className="icon-button small" onClick={onNewNote} aria-label="New note" title="New note">
-              <Icon name="plus" size={16} />
-            </button>
+            <div className="section-actions">
+              {otherNotes.length > 1 && (
+                <button
+                  className="sort-button"
+                  onClick={() => onNoteGroupingChange(nextGrouping.id)}
+                  aria-label={`Notes shown ${currentGrouping.description}. Show ${nextGrouping.description}`}
+                  title={`Show ${nextGrouping.description}`}
+                >
+                  {currentGrouping.label}
+                </button>
+              )}
+              <button className="icon-button small" onClick={onNewNote} aria-label="New note" title="New note">
+                <Icon name="plus" size={16} />
+              </button>
+            </div>
           }
         >
-          {otherNotes.length === 0 ? <p className="section-empty">Every note is in Favorites.</p> : noteList(otherNotes)}
+          {otherNotes.length === 0 ? (
+            <p className="section-empty">Every note is in Favorites.</p>
+          ) : noteGrouping === 'date' ? (
+            groupedNoteList(otherNotes)
+          ) : (
+            noteList(otherNotes)
+          )}
         </Section>
 
         <Section

@@ -33,7 +33,7 @@ import {
   setNoteFavorite,
 } from './lib/library'
 import { notePreview, noteTitle } from './lib/notes'
-import { useSettings, type Accent, type EditorFont, type SidebarSection, type Theme } from './lib/settings'
+import { useSettings, type Accent, type EditorFont, type NoteGrouping, type SidebarSection, type Theme } from './lib/settings'
 import {
   describeUses,
   extractToSnippet,
@@ -380,6 +380,12 @@ export default function App() {
       icon: 'eye',
       run: () => updateSettings({ previewHighlights: !settings.previewHighlights }),
     },
+    {
+      id: 'note-grouping',
+      label: settings.noteGrouping === 'date' ? 'Notes: Show as one list' : 'Notes: Group by date',
+      icon: 'note',
+      run: () => updateSettings({ noteGrouping: settings.noteGrouping === 'date' ? 'none' : 'date' }),
+    },
     ...(openNote
       ? [{ id: 'favorite', label: openNote.favorite ? 'Remove from favorites' : 'Add to favorites', icon: 'star' as const, run: toggleFavorite }]
       : []),
@@ -445,6 +451,8 @@ export default function App() {
     onToggleSection: toggleSection,
     referenceCounts,
     snippetParents,
+    noteGrouping: settings.noteGrouping,
+    onNoteGroupingChange: (noteGrouping: NoteGrouping) => updateSettings({ noteGrouping }),
     snippetSort: settings.snippetSort,
     onSnippetSortChange: (snippetSort: SnippetSort) => updateSettings({ snippetSort }),
     expandedSnippets: settings.expandedSnippets,

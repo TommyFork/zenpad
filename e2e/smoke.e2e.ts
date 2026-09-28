@@ -177,3 +177,25 @@ test('sets a variable inline and fills it in where it was set', async ({ page })
   await expect(page.locator('.preview-host .cm-content')).toHaveText('Reviewing PR 517 today. Link: pull/517')
   expect(errors).toEqual([])
 })
+
+test('groups notes by date in the sidebar', async ({ page }) => {
+  const errors = watchForErrors(page)
+  await page.goto('/')
+  await expect(page.locator('.cm-content')).toContainText('Welcome to Zenpad')
+
+  await page.getByRole('button', { name: 'New note' }).first().click()
+  await page.locator('.cm-content').click()
+  await page.keyboard.type('Grouped note')
+
+  // Grouping by date is the default.
+  const notes = page.locator('#sidebar-section-notes')
+  await expect(notes.getByRole('group', { name: 'Today' })).toContainText('Grouped note')
+
+  // Switching to one list is remembered across reloads.
+  await page.getByRole('button', { name: /Notes shown grouped by date/ }).click()
+  await expect(notes.getByRole('group')).toHaveCount(0)
+  await page.reload()
+  await expect(notes.getByRole('button', { name: /^Grouped note/ })).toBeVisible()
+  await expect(notes.getByRole('group')).toHaveCount(0)
+  expect(errors).toEqual([])
+})

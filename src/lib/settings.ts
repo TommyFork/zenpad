@@ -5,6 +5,7 @@ export type Theme = 'system' | 'light' | 'dark'
 export type EditorFont = 'serif' | 'sans' | 'mono'
 export type Accent = 'lake' | 'sage' | 'clay' | 'plum' | 'graphite'
 export type SidebarSection = 'favorites' | 'notes' | 'snippets'
+export type NoteGrouping = 'none' | 'date'
 
 export interface Settings {
   theme: Theme
@@ -14,6 +15,8 @@ export interface Settings {
   // Tints the text each snippet filled in when previewing a note.
   previewHighlights: boolean
   collapsedSections: SidebarSection[]
+  // Splits the Notes list under headings like Today, Yesterday, and Previous 7 days.
+  noteGrouping: NoteGrouping
   snippetSort: SnippetSort
   // Snippets whose nested snippets are shown in the sidebar, by id.
   expandedSnippets: string[]
@@ -28,6 +31,7 @@ const DEFAULT_SETTINGS: Settings = {
   sidebarOpen: true,
   previewHighlights: true,
   collapsedSections: [],
+  noteGrouping: 'date',
   snippetSort: 'name',
   expandedSnippets: [],
 }
