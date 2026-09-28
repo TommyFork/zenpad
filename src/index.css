@@ -511,6 +511,18 @@ kbd {
   padding: 0;
 }
 
+.doc-group + .doc-group {
+  margin-top: 10px;
+}
+
+.doc-group-label {
+  margin: 0;
+  padding: 4px 12px 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--faint);
+}
+
 .doc-item {
   display: flex;
   flex-direction: column;

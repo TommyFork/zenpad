@@ -1,4 +1,4 @@
-import type { Accent, EditorFont, Settings, Theme } from '../lib/settings'
+import type { Accent, EditorFont, NoteGrouping, Settings, Theme } from '../lib/settings'
 import { useEscape } from '../app/useEscape'
 import { Icon } from './Icon'
 
@@ -22,6 +22,11 @@ const FONTS: Choice<EditorFont>[] = [
 const PREVIEW_HIGHLIGHTS: Choice<'tinted' | 'plain'>[] = [
   { value: 'tinted', label: 'Tinted' },
   { value: 'plain', label: 'Plain' },
+]
+
+const NOTE_GROUPINGS: Choice<NoteGrouping>[] = [
+  { value: 'none', label: 'One list' },
+  { value: 'date', label: 'By date' },
 ]
 
 const ACCENTS: Choice<Accent>[] = [
@@ -107,6 +112,7 @@ export function SettingsPanel({ settings, storagePersisted, noteCount, snippetCo
           value={settings.previewHighlights ? 'tinted' : 'plain'}
           onChange={(value) => onChange({ previewHighlights: value === 'tinted' })}
         />
+        <Segmented label="Sidebar notes" choices={NOTE_GROUPINGS} value={settings.noteGrouping} onChange={(noteGrouping) => onChange({ noteGrouping })} />
 
         <div className="settings-section">
           <h3>Your library</h3>
