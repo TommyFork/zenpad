@@ -6,7 +6,7 @@ import { highlightSelectionMatches, search, searchKeymap } from '@codemirror/sea
 import { EditorState, Prec, type Extension } from '@codemirror/state'
 import { drawSelection, EditorView, keymap, placeholder, tooltips } from '@codemirror/view'
 import { extractTooltip } from './extractTooltip'
-import { noteVariables } from './noteVariables'
+import { foldVariableBlocks, noteVariables } from './noteVariables'
 import { replaceState } from './replaceState'
 import { snippetChips } from './snippetChips'
 import { snippetCompletion } from './snippetCompletion'
@@ -156,7 +156,8 @@ export function Editor({ ref, document, snippets, placeholderText, onChange, onO
         extensions: [...extensionsRef.current, placeholder(placeholderText)],
       })
     replaceState(view, state)
-    view.dispatch({ effects: setSnippetBodies.of(snippetsRef.current) })
+    // Blocks start folded; a cached state keeps whatever the writer left open.
+    view.dispatch({ effects: [setSnippetBodies.of(snippetsRef.current), ...(cached ? [] : foldVariableBlocks(view.state))] })
     if (cached) view.dispatch({ effects: EditorView.scrollIntoView(cached.selection.main.head, { y: 'center' }) })
     else view.scrollDOM.scrollTop = 0
     openKey.current = document.key

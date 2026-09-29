@@ -178,6 +178,31 @@ test('sets a variable inline and fills it in where it was set', async ({ page })
   expect(errors).toEqual([])
 })
 
+test('folds a block variable and fills it in where it is used', async ({ page }) => {
+  const errors = watchForErrors(page)
+  await page.goto('/')
+  await expect(page.locator('.cm-content')).toContainText('Welcome to Zenpad')
+  await page.keyboard.press('ControlOrMeta+Alt+KeyN')
+  await expect(page.locator('.cm-content')).not.toContainText('Welcome to Zenpad')
+
+  await page.locator('.cm-content').click()
+  await page.keyboard.insertText('$context = """\nLong context line one.\nLine two.\n"""\n\nUse this: $context')
+  const editor = page.locator('.cm-content')
+  await expect(editor).toContainText('Long context line one.')
+
+  await page.getByRole('button', { name: 'Fold', exact: true }).click()
+  await expect(editor).not.toContainText('Long context line one.')
+  await expect(page.locator('.cm-variable-fold')).toHaveText('2 lines · 6 words')
+
+  await page.keyboard.press('ControlOrMeta+KeyE')
+  await expect(page.locator('.preview-host .cm-content')).toHaveText('Use this: Long context line one.Line two.')
+  await page.keyboard.press('ControlOrMeta+KeyE')
+
+  await page.locator('.cm-variable-fold').click()
+  await expect(editor).toContainText('Long context line one.')
+  expect(errors).toEqual([])
+})
+
 test('groups notes by date in the sidebar', async ({ page }) => {
   const errors = watchForErrors(page)
   await page.goto('/')

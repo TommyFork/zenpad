@@ -5,6 +5,7 @@ import {
   describeFillIn,
   fillIn,
   fillInParts,
+  parseBlocks,
   parseDefinitionLine,
   parseVariables,
   resolveVariables,
@@ -71,6 +72,37 @@ describe('parseVariables', () => {
   })
 })
 
+const blockNote = `$context = """
+The repo is $repo.
+@tone
+
+It has tests.
+"""
+$repo = zenpad
+
+Use this context:
+$context`
+
+describe('parseBlocks', () => {
+  it('reads the lines between the opening and closing quotes', () => {
+    expect(parseBlocks(blockNote.split('\n'))).toEqual([
+      { name: 'context', value: 'The repo is $repo.\n@tone\n\nIt has tests.', open: 0, close: 5 },
+    ])
+  })
+
+  it('allows indented quotes and an empty block', () => {
+    expect(parseBlocks(['  $a =  """  ', '  """'])).toEqual([{ name: 'a', value: '', open: 0, close: 1 }])
+  })
+
+  it('ignores an opening line that is never closed', () => {
+    expect(parseBlocks(['$a = """', 'text', 'more'])).toEqual([])
+  })
+
+  it('ends a block at the first closing line', () => {
+    expect(parseBlocks(['$a = """', 'one', '"""', 'two', '"""'])).toEqual([{ name: 'a', value: 'one', open: 0, close: 2 }])
+  })
+})
+
 describe('variableTokens', () => {
   it('finds uses and inline definitions with their ranges', () => {
     const line = 'Use $a and $B{x y}.'
@@ -83,6 +115,17 @@ describe('variableTokens', () => {
 
   it('leaves shell-style ${NAME} alone', () => {
     expect(variableTokens('echo ${HOME}')).toEqual([])
+  })
+})
+
+describe('parseVariables with blocks', () => {
+  it('reads a block as one value and skips definitions written inside it', () => {
+    expect(parseVariables('$a = """\n$b = inside\n"""\n$b = outside')).toEqual(
+      new Map([
+        ['a', '$b = inside'],
+        ['b', 'outside'],
+      ]),
+    )
   })
 })
 
@@ -109,6 +152,10 @@ describe('stripVariableDefinitions', () => {
 
   it('keeps blank lines that separate other text', () => {
     expect(stripVariableDefinitions('One\n\n$a = 1\nTwo')).toBe('One\n\nTwo')
+  })
+
+  it('drops whole blocks', () => {
+    expect(stripVariableDefinitions('$a = """\none\n\ntwo\n"""\n\nHello\n$b = """\nx\n"""\nBye')).toBe('Hello\nBye')
   })
 
   it('returns text without definitions unchanged', () => {
@@ -139,6 +186,10 @@ describe('fillIn', () => {
     expect(fillIn('$PR = 482\nPR $PR, not $pr', bodies)).toBe('PR 482, not $pr')
   })
 
+  it('fills in a block where it is used, with its variables and snippets', () => {
+    expect(fillIn(blockNote, bodies)).toBe('Use this context:\nThe repo is zenpad.\nBe concise.\n\nIt has tests.')
+  })
+
   it('matches the longest name', () => {
     expect(fillIn('$pr = 1\n$pr-url = u\n$pr-url and $pr-', bodies)).toBe('u and 1-')
   })
@@ -152,7 +203,7 @@ describe('fillInParts', () => {
   }
 
   it('produces the same text as fillIn', () => {
-    for (const text of [note, 'plain', '$a = 1\n$a$a @missing', '$x = @tone\n$x', 'On $b{x}-y, $b @review $c{@tone}']) {
+    for (const text of [note, blockNote, 'plain', '$a = 1\n$a$a @missing', '$x = @tone\n$x', 'On $b{x}-y, $b @review $c{@tone}']) {
       expect(flatten(fillInParts(text, bodies))).toBe(fillIn(text, bodies))
     }
   })
@@ -191,5 +242,9 @@ describe('describeFillIn', () => {
 describe('noteTitle', () => {
   it('skips variable definitions and fills in the rest', () => {
     expect(noteTitle(note)).toBe('PR 482')
+  })
+
+  it('skips blocks', () => {
+    expect(noteTitle(blockNote)).toBe('Use this context:')
   })
 })

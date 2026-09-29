@@ -1,7 +1,17 @@
 import type { Completion, CompletionContext, CompletionResult } from '@codemirror/autocomplete'
-import { RangeSetBuilder, StateField, type EditorState } from '@codemirror/state'
-import { Decoration, EditorView, ViewPlugin, hoverTooltip, type DecorationSet, type ViewUpdate } from '@codemirror/view'
-import { parseDefinitionLine, parseVariables, resolveVariables, variableTokens, type VariableToken } from '../lib/variables'
+import { codeFolding, foldEffect, foldedRanges, unfoldEffect } from '@codemirror/language'
+import { RangeSetBuilder, StateField, type EditorState, type StateEffect, type Text } from '@codemirror/state'
+import {
+  Decoration,
+  EditorView,
+  ViewPlugin,
+  WidgetType,
+  hoverTooltip,
+  type DecorationSet,
+  type ViewUpdate,
+} from '@codemirror/view'
+import { countWords } from '../lib/notes'
+import { parseBlocks, parseDefinitionLine, parseVariables, resolveVariables, variableTokens, type VariableToken } from '../lib/variables'
 import { snippetBodiesField } from './snippetState'
 
 const TOOLTIP_PREVIEW_LENGTH = 480
@@ -18,7 +28,123 @@ const variablesField = StateField.define<ReadonlyMap<string, string>>({
   },
 })
 
+interface BlockRange {
+  name: string
+  // Line numbers of the opening and closing lines.
+  openLine: number
+  closeLine: number
+  // Where the value starts, and what folds away: from the end of the opening line to the closing quotes.
+  bodyFrom: number
+  foldFrom: number
+  foldTo: number
+}
+
+function readBlocks(doc: Text): BlockRange[] {
+  return parseBlocks(doc.toJSON()).map(({ name, open, close }) => {
+    const openLine = doc.line(open + 1)
+    const closeLine = doc.line(close + 1)
+    return {
+      name,
+      openLine: openLine.number,
+      closeLine: closeLine.number,
+      bodyFrom: open + 1 < close ? openLine.to + 1 : closeLine.from,
+      foldFrom: openLine.to,
+      foldTo: closeLine.from + closeLine.text.indexOf('"""'),
+    }
+  })
+}
+
+const blocksField = StateField.define<readonly BlockRange[]>({
+  create: (state) => readBlocks(state.doc),
+  update: (blocks, transaction) => (transaction.docChanged ? readBlocks(transaction.newDoc) : blocks),
+})
+
+type LineRole = 'open' | 'body' | 'close' | null
+
+function lineRole(state: EditorState, number: number): LineRole {
+  const block = state.field(blocksField).find((range) => range.openLine <= number && number <= range.closeLine)
+  if (!block) return null
+  return number === block.openLine ? 'open' : number === block.closeLine ? 'close' : 'body'
+}
+
+function isFolded(state: EditorState, block: BlockRange): boolean {
+  let folded = false
+  foldedRanges(state).between(block.foldFrom, block.foldFrom, (from) => {
+    if (from === block.foldFrom) folded = true
+  })
+  return folded
+}
+
+function foldBlock(state: EditorState, block: BlockRange) {
+  const { head } = state.selection.main
+  // A fold that holds the cursor would open again straight away.
+  const inside = head > block.foldFrom && head < block.foldTo
+  return {
+    effects: foldEffect.of({ from: block.foldFrom, to: block.foldTo }),
+    selection: inside ? { anchor: block.foldFrom } : undefined,
+  }
+}
+
+// Folds every block, so a note opens with its long values tucked away.
+export function foldVariableBlocks(state: EditorState): StateEffect<unknown>[] {
+  return state.field(blocksField, false)?.map((block) => foldEffect.of({ from: block.foldFrom, to: block.foldTo })) ?? []
+}
+
+function plural(count: number, word: string): string {
+  return `${count.toLocaleString()} ${word}${count === 1 ? '' : 's'}`
+}
+
+// The folded text runs from the end of the opening line to the closing quotes.
+function blockSummary(folded: string): string {
+  const body = folded.replace(/^\n/, '').replace(/\n[ \t]*$/, '')
+  if (body.trim() === '') return 'empty'
+  return `${plural(body.split('\n').length, 'line')} · ${plural(countWords(body), 'word')}`
+}
+
+const blockFolding = codeFolding({
+  preparePlaceholder: (state, range) => blockSummary(state.sliceDoc(range.from, range.to)),
+  placeholderDOM(_view, onclick, summary: string) {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'cm-variable-fold'
+    button.textContent = summary
+    button.title = 'Show the text'
+    button.setAttribute('aria-label', `Show the folded text, ${summary}`)
+    button.addEventListener('click', onclick)
+    return button
+  },
+})
+
+class FoldButton extends WidgetType {
+  eq() {
+    return true
+  }
+
+  toDOM(view: EditorView) {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'cm-variable-fold-button'
+    button.textContent = 'Fold'
+    button.title = 'Fold this text out of the way'
+    // Keeps the editor from moving the cursor to the button first.
+    button.addEventListener('mousedown', (event) => event.preventDefault())
+    button.addEventListener('click', () => {
+      const number = view.state.doc.lineAt(view.posAtDOM(button)).number
+      const block = view.state.field(blocksField).find((range) => range.openLine === number)
+      if (block) view.dispatch(foldBlock(view.state, block))
+    })
+    return button
+  }
+
+  ignoreEvent() {
+    return true
+  }
+}
+
+const foldButton = Decoration.widget({ widget: new FoldButton(), side: 1 })
+
 const definitionLine = Decoration.line({ class: 'cm-variable-line' })
+const blockLine = Decoration.line({ class: 'cm-variable-block-line' })
 const definitionName = Decoration.mark({ class: 'cm-variable cm-variable-def' })
 const referenceChip = Decoration.mark({ class: 'cm-variable' })
 const inlineBrace = Decoration.mark({ class: 'cm-variable-brace' })
@@ -31,7 +157,10 @@ interface LineVariable {
 }
 
 // The variables on a line. A definition line's value is skipped, since it isn't part of the note.
-function lineVariables(text: string): LineVariable[] {
+// Inside a block, "$name" uses a variable and nothing is defined.
+function lineVariables(text: string, role: LineRole): LineVariable[] {
+  if (role === 'close') return []
+  if (role === 'body') return variableTokens(text).map((token) => ({ token: { ...token, inline: undefined }, isDefinition: false }))
   const definition = parseDefinitionLine(text)
   return variableTokens(text).flatMap((token) => {
     if (!definition) return [{ token, isDefinition: token.inline !== undefined }]
@@ -47,8 +176,10 @@ function buildDecorations(view: EditorView): DecorationSet {
   for (const { from, to } of view.visibleRanges) {
     for (let pos = Math.max(from, done + 1); pos <= to; ) {
       const line = view.state.doc.lineAt(pos)
-      if (parseDefinitionLine(line.text)) builder.add(line.from, line.from, definitionLine)
-      for (const { token, isDefinition } of lineVariables(line.text)) {
+      const role = lineRole(view.state, line.number)
+      if (role === 'body') builder.add(line.from, line.from, blockLine)
+      else if (role || parseDefinitionLine(line.text)) builder.add(line.from, line.from, definitionLine)
+      for (const { token, isDefinition } of lineVariables(line.text, role)) {
         const at = (offset: number) => line.from + offset
         if (token.inline) {
           builder.add(at(token.from), at(token.nameTo), definitionName)
@@ -58,6 +189,10 @@ function buildDecorations(view: EditorView): DecorationSet {
         } else if (values.has(token.name)) {
           builder.add(at(token.from), at(token.to), isDefinition ? definitionName : referenceChip)
         }
+      }
+      if (role === 'open') {
+        const block = view.state.field(blocksField).find((range) => range.openLine === line.number)
+        if (block && !isFolded(view.state, block)) builder.add(line.to, line.to, foldButton)
       }
       done = line.to
       pos = line.to + 1
@@ -75,7 +210,8 @@ const variableHighlighter = ViewPlugin.fromClass(
     }
 
     update(update: ViewUpdate) {
-      if (update.docChanged || update.viewportChanged) this.decorations = buildDecorations(update.view)
+      const foldsChanged = foldedRanges(update.startState) !== foldedRanges(update.state)
+      if (update.docChanged || update.viewportChanged || foldsChanged) this.decorations = buildDecorations(update.view)
     }
   },
   { decorations: (plugin) => plugin.decorations },
@@ -89,7 +225,7 @@ interface VariableAt {
 
 function variableAt(state: EditorState, pos: number): VariableAt | null {
   const line = state.doc.lineAt(pos)
-  for (const { token, isDefinition } of lineVariables(line.text)) {
+  for (const { token, isDefinition } of lineVariables(line.text, lineRole(state, line.number))) {
     if (pos < line.from + token.from || pos > line.from + token.to) continue
     if (!state.field(variablesField).has(token.name)) return null
     return { name: token.name, isDefinition, isInline: token.inline !== undefined }
@@ -98,8 +234,16 @@ function variableAt(state: EditorState, pos: number): VariableAt | null {
 }
 
 // Where the variable's value is first set, so it can be selected and typed over.
+// A block's value can be long, so the cursor goes to its start instead.
 function definitionRange(state: EditorState, name: string): { from: number; to: number } | null {
+  const blocks = new Map(state.field(blocksField).map((block) => [block.openLine, block]))
   for (let number = 1; number <= state.doc.lines; number++) {
+    const block = blocks.get(number)
+    if (block?.name === name) return { from: block.bodyFrom, to: block.bodyFrom }
+    if (block) {
+      number = block.closeLine
+      continue
+    }
     const line = state.doc.line(number)
     const definition = parseDefinitionLine(line.text)
     if (definition?.name === name) return { from: line.from + definition.valueFrom, to: line.from + definition.valueTo }
@@ -113,7 +257,7 @@ function definitionRange(state: EditorState, name: string): { from: number; to: 
 function countReferences(state: EditorState, name: string): number {
   let count = 0
   for (let number = 1; number <= state.doc.lines; number++) {
-    for (const { token, isDefinition } of lineVariables(state.doc.line(number).text)) {
+    for (const { token, isDefinition } of lineVariables(state.doc.line(number).text, lineRole(state, number))) {
       if (token.name === name && !isDefinition) count++
     }
   }
@@ -165,7 +309,11 @@ const jumpOnModClick = EditorView.domEventHandlers({
     const range = variable && !variable.isDefinition ? definitionRange(view.state, variable.name) : null
     if (!range) return false
     event.preventDefault()
-    view.dispatch({ selection: { anchor: range.from, head: range.to }, scrollIntoView: true })
+    const unfold: StateEffect<unknown>[] = []
+    foldedRanges(view.state).between(range.from, range.to, (from, to) => {
+      if (from <= range.from && to >= range.to) unfold.push(unfoldEffect.of({ from, to }))
+    })
+    view.dispatch({ effects: unfold, selection: { anchor: range.from, head: range.to }, scrollIntoView: true })
     view.focus()
     return true
   },
@@ -189,4 +337,4 @@ export function variableCompletionSource(context: CompletionContext): Completion
   return { from: typed.from, options }
 }
 
-export const noteVariables = [variablesField, variableHighlighter, variableTooltip, jumpOnModClick]
+export const noteVariables = [variablesField, blocksField, blockFolding, variableHighlighter, variableTooltip, jumpOnModClick]

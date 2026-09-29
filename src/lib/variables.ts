@@ -56,17 +56,59 @@ export function isVariableDefinition(line: string): boolean {
   return parseDefinitionLine(line) !== null
 }
 
-// The raw values written in the text, from definition lines and inline definitions.
+// A block holds a longer value over several lines, between '$context = """' and a line of just '"""'.
+const BLOCK_OPEN_SOURCE = `^[ \\t]*\\$(${NAME})[ \\t]*=[ \\t]*"""[ \\t]*$`
+const BLOCK_CLOSE = /^[ \t]*"""[ \t]*$/
+
+export interface VariableBlock {
+  name: string
+  value: string
+  // Indexes of the opening and closing lines.
+  open: number
+  close: number
+}
+
+// An opening line with no closing line after it isn't a block, so text below it is never swallowed.
+export function parseBlocks(lines: readonly string[]): VariableBlock[] {
+  const blocks: VariableBlock[] = []
+  const openPattern = new RegExp(BLOCK_OPEN_SOURCE)
+  for (let open = 0; open < lines.length; open++) {
+    const name = openPattern.exec(lines[open])?.[1]
+    if (!name) continue
+    const close = lines.findIndex((line, index) => index > open && BLOCK_CLOSE.test(line))
+    if (close === -1) break
+    blocks.push({ name, value: lines.slice(open + 1, close).join('\n'), open, close })
+    open = close
+  }
+  return blocks
+}
+
+// Which lines set variables rather than being part of the note: definition lines and whole blocks.
+export function definitionLines(lines: readonly string[]): boolean[] {
+  const marks = lines.map(isVariableDefinition)
+  for (const { open, close } of parseBlocks(lines)) marks.fill(true, open, close + 1)
+  return marks
+}
+
+// The raw values written in the text, from definition lines, blocks, and inline definitions.
 // When a name is set twice, the first one in the text wins.
 export function parseVariables(text: string): Map<string, string> {
   const values = new Map<string, string>()
   const define = (name: string, value: string) => {
     if (!values.has(name)) values.set(name, value)
   }
-  for (const line of text.split('\n')) {
-    const definition = parseDefinitionLine(line)
+  const lines = text.split('\n')
+  const blocks = new Map(parseBlocks(lines).map((block) => [block.open, block]))
+  for (let index = 0; index < lines.length; index++) {
+    const block = blocks.get(index)
+    if (block) {
+      define(block.name, block.value)
+      index = block.close
+      continue
+    }
+    const definition = parseDefinitionLine(lines[index])
     if (definition) define(definition.name, definition.value)
-    else for (const token of variableTokens(line)) if (token.inline) define(token.name, token.inline.value)
+    else for (const token of variableTokens(lines[index])) if (token.inline) define(token.name, token.inline.value)
   }
   return values
 }
@@ -83,16 +125,17 @@ export function resolveVariables(
   return new Map([...raw.keys()].map((name) => [name, resolve(name, [name])]))
 }
 
-// Definition lines are settings for the note, not part of it, so they are left out of what gets copied.
+// Definition lines and blocks are settings for the note, not part of it, so they are left out of what gets copied.
 // Inline definitions stay, and are filled in like any other use.
 // A blank line that only separated the definitions from the rest goes with them.
 export function stripVariableDefinitions(text: string): string {
   const lines = text.split('\n')
-  const kept = lines.filter((line) => !isVariableDefinition(line))
-  if (kept.length === lines.length) return text
-  const firstContent = lines.findIndex((line) => !isVariableDefinition(line) && line.trim() !== '')
-  const head = firstContent === -1 ? lines : lines.slice(0, firstContent)
-  if (head.some(isVariableDefinition)) while (kept.length > 0 && kept[0].trim() === '') kept.shift()
+  const marks = definitionLines(lines)
+  if (!marks.includes(true)) return text
+  const kept = lines.filter((_, index) => !marks[index])
+  const firstContent = lines.findIndex((line, index) => !marks[index] && line.trim() !== '')
+  const head = firstContent === -1 ? marks : marks.slice(0, firstContent)
+  if (head.includes(true)) while (kept.length > 0 && kept[0].trim() === '') kept.shift()
   return kept.join('\n')
 }
 

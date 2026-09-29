@@ -200,6 +200,29 @@ $HOME and $5 are not set, so they stay as written.`,
     age: 6 * DAY,
   },
   {
+    body: `# Folded context
+
+$logs = """
+[12:04:01] GET /notes 200 12ms
+[12:04:03] PUT /notes/42 500 3ms
+TypeError: Cannot read properties of undefined (reading 'body')
+    at saveNote (library.ts:88)
+    at flush (useAutosave.ts:31)
+Uses $repo, so the block fills in its own variables. @output-format
+"""
+$repo = zenpad
+$empty = """
+"""
+
+The block above opens folded. Click it to show the text, or Fold to hide it again.
+
+Here are the logs from $repo:
+$logs
+
+An empty block fills in as nothing: "$empty"`,
+    age: 6 * DAY + HOUR,
+  },
+  {
     body: `# Ideas
 
 - Snippet folders
