@@ -31,12 +31,12 @@ describe('buildSampleLibrary', () => {
     expect([...new Set(referenced.filter((name) => !names.has(name)))]).toEqual(['not-written-yet'])
   })
 
-  it('includes folded blocks, one of them used by a snippet', () => {
+  it('includes folded blocks that fill in where they sit', () => {
     const bodies = new Map(library.snippets.map((snippet) => [snippet.name, snippet.body]))
     const plan = library.notes.find((note) => note.body.includes('# Plan the sync feature'))!
     expect(parseBlocks(plan.body.split('\n')).map((block) => block.name)).toEqual(['background', 'questions'])
     const copied = fillIn(plan.body, bodies)
-    expect(copied).toContain('## 8. Rollout')
+    expect(copied.split('## 8. Rollout')).toHaveLength(2)
     expect(copied).toContain('Which parts of zenpad need to change first?')
     expect(copied.startsWith('# Plan the sync feature\n\nYou are a senior')).toBe(true)
     expect(copied).not.toContain('"""')
@@ -44,9 +44,11 @@ describe('buildSampleLibrary', () => {
 
   it('keeps the folded block edge cases behaving as described', () => {
     const edges = library.notes.find((note) => note.body.startsWith('# Folded block edge cases'))!
+    const first = '  The first block named $first wins.\n  $inside = not a definition, just text in the block'
     expect(fillIn(edges.body, new Map())).toBe(
-      '# Folded block edge cases\n\n\n' +
-        'Uses:   The first block named $first wins.\n  $inside = not a definition, just text in the block / Indented quotes still open and close a block. / $inside\n\n' +
+      '# Folded block edge cases\n\n' +
+        `${first}\n${first}\nIndented quotes still open and close a block.\n\n` +
+        `Uses: ${first} / Indented quotes still open and close a block. / $inside\n\n` +
         'This block never closes, so it stays visible, and """ fills in as the quotes.',
     )
   })

@@ -108,25 +108,29 @@ describe('wrapInBlock', () => {
   function apply(text: string, from: number, to: number, baseName?: string) {
     const wrap = wrapInBlock(text, from, to, baseName)
     if (!wrap) return null
-    const next = text.slice(0, wrap.at) + wrap.block + text.slice(wrap.at, from) + wrap.reference + text.slice(to)
-    return { wrap, next, names: wrap.nameRanges.map((range) => next.slice(range.from, range.to)) }
+    const next = text.slice(0, wrap.from) + wrap.insert + text.slice(wrap.to)
+    return { wrap, next, name: next.slice(wrap.nameRange.from, wrap.nameRange.to) }
   }
 
-  it('moves whole lines into a block and copies the same', () => {
+  it('folds whole lines into a block in place and copies the same', () => {
     const text = 'Intro\nLong context\nmore context\nOutro'
-    const from = text.indexOf('Long')
-    const result = apply(text, from, text.indexOf('Outro'))!
-    expect(result.next).toBe('Intro\n$context = """\nLong context\nmore context\n"""\n$context\nOutro')
-    expect(result.names).toEqual(['context', 'context'])
+    const result = apply(text, text.indexOf('Long'), text.indexOf('Outro'))!
+    expect(result.next).toBe('Intro\n$context = """\nLong context\nmore context\n"""\nOutro')
+    expect(result.name).toBe('context')
     expect(fillIn(result.next, bodies)).toBe(fillIn(text, bodies))
   })
 
-  it('puts the block above the line when only part of it is selected', () => {
-    const text = 'Use this: big context here.'
+  it('takes the whole line when only part of it is selected', () => {
+    const text = 'Use this: big context here.\nNext'
     const result = apply(text, 10, 26)!
-    expect(result.next).toBe('$context = """\nbig context here\n"""\nUse this: $context.')
-    expect(result.names).toEqual(['context', 'context'])
+    expect(result.next).toBe('$context = """\nUse this: big context here.\n"""\nNext')
     expect(fillIn(result.next, bodies)).toBe(text)
+  })
+
+  it('keeps snippets and variables filling in the same', () => {
+    const text = '$pr = 7\nSee PR $pr.\n@tone\nDone'
+    const result = apply(text, text.indexOf('See'), text.indexOf('Done'))!
+    expect(fillIn(result.next, bodies)).toBe(fillIn(text, bodies))
   })
 
   it('picks a name the note does not use yet', () => {
@@ -134,16 +138,12 @@ describe('wrapInBlock', () => {
     expect(apply(text, text.indexOf('more'), text.length)!.wrap.name).toBe('context-3')
   })
 
-  it('keeps the name apart from the text around it', () => {
-    const text = 'abc{def'
-    expect(apply(text, 1, 2)!.wrap.reference).toBe(' $context ')
-  })
-
-  it('refuses blank text, definitions, and closing quotes', () => {
+  it('refuses blank text, definitions, closing quotes, and inline definitions', () => {
     expect(wrapInBlock('a\n  \nb', 2, 4)).toBeNull()
     expect(wrapInBlock('$a = 1\ntext', 0, 11)).toBeNull()
     expect(wrapInBlock('$a = """\nin\n"""\nout', 9, 11)).toBeNull()
     expect(wrapInBlock('one\n"""\ntwo', 0, 11)).toBeNull()
+    expect(wrapInBlock('On $b{main} today', 0, 5)).toBeNull()
   })
 })
 
@@ -198,8 +198,8 @@ describe('stripVariableDefinitions', () => {
     expect(stripVariableDefinitions('One\n\n$a = 1\nTwo')).toBe('One\n\nTwo')
   })
 
-  it('drops whole blocks', () => {
-    expect(stripVariableDefinitions('$a = """\none\n\ntwo\n"""\n\nHello\n$b = """\nx\n"""\nBye')).toBe('Hello\nBye')
+  it('leaves a use of the name where each block sits', () => {
+    expect(stripVariableDefinitions('$a = """\none\n\ntwo\n"""\n\nHello\n$b = """\nx\n"""\nBye')).toBe('$a\n\nHello\n$b\nBye')
   })
 
   it('returns text without definitions unchanged', () => {
@@ -230,8 +230,9 @@ describe('fillIn', () => {
     expect(fillIn('$PR = 482\nPR $PR, not $pr', bodies)).toBe('PR 482, not $pr')
   })
 
-  it('fills in a block where it is used, with its variables and snippets', () => {
-    expect(fillIn(blockNote, bodies)).toBe('Use this context:\nThe repo is zenpad.\nBe concise.\n\nIt has tests.')
+  it('fills in a block where it sits and where it is used again, with its variables and snippets', () => {
+    const context = 'The repo is zenpad.\nBe concise.\n\nIt has tests.'
+    expect(fillIn(blockNote, bodies)).toBe(`${context}\n\nUse this context:\n${context}`)
   })
 
   it('matches the longest name', () => {

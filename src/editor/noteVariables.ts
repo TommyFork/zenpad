@@ -115,24 +115,18 @@ export function canWrapSelection(state: EditorState): boolean {
   return state.facet(blockWrapping) && wrapInBlock(state.doc.toString(), from, to) !== null
 }
 
-// Moves the selection into a folded block and selects both copies of its name, so typing renames it.
+// Folds the selected lines into a block where they are, and selects its name so typing renames it.
 export function wrapSelectionInBlock(view: EditorView): string | null {
   const { from, to } = view.state.selection.main
   const wrap = view.state.facet(blockWrapping) ? wrapInBlock(view.state.doc.toString(), from, to) : null
   if (!wrap) return null
   view.dispatch({
-    changes: [
-      { from: wrap.at, insert: wrap.block },
-      { from, to, insert: wrap.reference },
-    ],
-    selection: EditorSelection.create(
-      wrap.nameRanges.map((range) => EditorSelection.range(range.from, range.to)),
-      1,
-    ),
+    changes: { from: wrap.from, to: wrap.to, insert: wrap.insert },
+    selection: EditorSelection.single(wrap.nameRange.from, wrap.nameRange.to),
     scrollIntoView: true,
     userEvent: 'input.fold',
   })
-  const number = view.state.doc.lineAt(wrap.at).number
+  const number = view.state.doc.lineAt(wrap.from).number
   const block = view.state.field(blocksField).find((range) => range.openLine === number)
   if (block) view.dispatch({ effects: foldEffect.of({ from: block.foldFrom, to: block.foldTo }) })
   view.focus()
@@ -269,15 +263,17 @@ const variableHighlighter = ViewPlugin.fromClass(
 interface VariableAt {
   name: string
   isDefinition: boolean
-  isInline: boolean
+  // Whether the definition shows its value where it sits: "$name{value}" or a block.
+  inPlace: boolean
 }
 
 function variableAt(state: EditorState, pos: number): VariableAt | null {
   const line = state.doc.lineAt(pos)
-  for (const { token, isDefinition } of lineVariables(line.text, lineRole(state, line.number))) {
+  const role = lineRole(state, line.number)
+  for (const { token, isDefinition } of lineVariables(line.text, role)) {
     if (pos < line.from + token.from || pos > line.from + token.to) continue
     if (!state.field(variablesField).has(token.name)) return null
-    return { name: token.name, isDefinition, isInline: token.inline !== undefined }
+    return { name: token.name, isDefinition, inPlace: token.inline !== undefined || role === 'open' }
   }
   return null
 }
@@ -313,7 +309,7 @@ function countReferences(state: EditorState, name: string): number {
   return count
 }
 
-function tooltipBody(state: EditorState, { name, isDefinition, isInline }: VariableAt): HTMLElement {
+function tooltipBody(state: EditorState, { name, isDefinition, inPlace }: VariableAt): HTMLElement {
   const value = resolveVariables(state.field(variablesField), state.field(snippetBodiesField)).get(name) ?? ''
   const container = document.createElement('div')
   container.className = 'cm-snippet-tooltip'
@@ -335,8 +331,8 @@ function tooltipBody(state: EditorState, { name, isDefinition, isInline }: Varia
     const uses = countReferences(state, name)
     hint.textContent =
       uses === 0
-        ? `Not used ${isInline ? 'anywhere else ' : ''}yet. Type $${name} to use it.`
-        : `Used ${uses} ${isInline ? 'more ' : ''}${uses === 1 ? 'time' : 'times'}. Change it here to change them all.`
+        ? `Not used ${inPlace ? 'anywhere else ' : ''}yet. Type $${name} to use it.`
+        : `Used ${uses} ${inPlace ? 'more ' : ''}${uses === 1 ? 'time' : 'times'}. Change it here to change them all.`
   } else {
     hint.textContent = '⌘ click to change it'
   }
