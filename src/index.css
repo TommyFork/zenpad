@@ -615,10 +615,21 @@ kbd {
   font-variant-numeric: tabular-nums;
 }
 
+/* Sits at the start of the preview line, so the title row keeps just the title and time. */
 .doc-progress {
-  display: flex;
-  flex-shrink: 0;
-  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 7px;
+  vertical-align: -2px;
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.doc-progress.is-complete {
+  color: var(--accent-ink);
 }
 
 .doc-preview {
@@ -1223,32 +1234,23 @@ kbd {
 
 .progress-ring {
   flex-shrink: 0;
+  color: var(--accent);
 }
 
-.progress-ring-track,
-.progress-ring-bar {
+.progress-ring-outline {
   fill: none;
-  stroke-width: 2.5;
-}
-
-.progress-ring-track {
-  stroke: var(--line-strong);
-}
-
-.progress-ring-bar {
-  stroke: var(--accent);
-  stroke-linecap: round;
-  transition: stroke-dashoffset 0.3s ease;
+  stroke: currentColor;
+  stroke-width: 1.5;
 }
 
 .progress-ring-fill {
-  fill: var(--accent);
+  fill: currentColor;
 }
 
 .progress-ring-check {
   fill: none;
   stroke: var(--bg);
-  stroke-width: 2;
+  stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
 }

@@ -33,6 +33,14 @@ describe('parseTasks', () => {
     ])
   })
 
+  it('works out how deeply each task is nested', () => {
+    const depths = (text: string) => parseTasks(text).map((task) => task.depth)
+    expect(depths('- [ ] a\n  - [ ] b\n    - [ ] c\n  - [ ] d\n- [ ] e')).toEqual([0, 1, 2, 1, 0])
+    expect(depths('- [ ] a\n    - [ ] b\n\n    - [ ] c')).toEqual([0, 1, 1])
+    // A paragraph in between starts over, so an indented task under it isn't nested.
+    expect(depths('- [ ] a\nnotes\n  - [ ] b')).toEqual([0, 0])
+  })
+
   it('skips fenced code', () => {
     expect(parseTasks('```md\n- [ ] example\n```\n- [ ] real')).toHaveLength(1)
     expect(parseTasks('~~~~\n- [ ] a\n~~~\n- [ ] b\n~~~~\n- [ ] c').map((task) => task.line)).toEqual([5])

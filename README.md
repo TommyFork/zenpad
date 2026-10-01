@@ -25,7 +25,7 @@ Zenpad was built for writing AI prompts, but it works for any writing where you 
 - **@snippets.** Snippets stay linked, so editing one updates every note that uses it. They can nest, and loops are caught.
 - **$variables.** Set `$branch = fix/login` once, or inline as `$branch{fix/login}`, and use `$branch` anywhere in the note. Snippets can use them too.
 - **Folded blocks.** Keep long context in a note without it taking over the page: put it between `$context = """` and `"""`, and it folds into a one-line chip. Use `$context` where it belongs in the prompt. Or paste the text, select it, and click **Fold away** to do all of that in one step.
-- **Checklists.** Write `- [ ]` or press `⌘ ⇧ L` to turn lines into a checklist, then click a box to check it off. The status bar shows how far along the note is, and the sidebar shows a small progress ring that turns into a check mark once every box is ticked.
+- **Checklists.** Write `- [ ]` or press `⌘ ⇧ L` to turn lines into a checklist, then click a circle to check it off. The status bar shows how far along the note is, and in the sidebar a small pie fills in beside the count of done tasks, turning into a check mark once every one is done.
 - **Preview and copy.** See the note exactly as it will be copied, with every snippet and variable filled in.
 - **Snippet map.** An interactive graph of your snippets and the notes that use them.
 - **Grouped by date.** The sidebar lists notes under Today, Yesterday, Previous 7 days, Previous 30 days, then by month and year. Click a heading to collapse it. Switch to one list with the button beside Notes, or in Settings.

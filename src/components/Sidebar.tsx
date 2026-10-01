@@ -160,14 +160,26 @@ export function Sidebar({
                 >
                   <span className="doc-item-row">
                     <span className={note.body.trim() ? 'doc-title' : 'doc-title is-empty'}>{noteTitle(note.body)}</span>
-                    {tasks && (
-                      <span className="doc-progress" role="img" aria-label={progressLabel(tasks)} title={progressLabel(tasks)}>
-                        <ProgressRing progress={tasks} />
-                      </span>
-                    )}
                     <time className="doc-time">{formatRelativeTime(note.updatedAt, now)}</time>
                   </span>
-                  {preview && <span className="doc-preview">{preview}</span>}
+                  {(preview || tasks) && (
+                    <span className="doc-preview">
+                      {tasks && (
+                        <span
+                          className={tasks.done === tasks.total ? 'doc-progress is-complete' : 'doc-progress'}
+                          role="img"
+                          aria-label={progressLabel(tasks)}
+                          title={progressLabel(tasks)}
+                        >
+                          <ProgressRing progress={tasks} size={13} />
+                          <span aria-hidden="true">
+                            {tasks.done}/{tasks.total}
+                          </span>
+                        </span>
+                      )}
+                      {preview}
+                    </span>
+                  )}
                 </button>
                 {deleteButton(doc, `note “${noteTitle(note.body)}”`)}
               </div>

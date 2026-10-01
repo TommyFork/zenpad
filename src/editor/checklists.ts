@@ -2,9 +2,9 @@ import { EditorSelection, Prec, type EditorState, type Range } from '@codemirror
 import { Decoration, EditorView, keymap, ViewPlugin, WidgetType, type DecorationSet, type ViewUpdate } from '@codemirror/view'
 import { parseTaskLine, parseTasks, toggleChecklist, type TaskLine } from '../lib/tasks'
 
-// Where the hidden marker sits: a bullet goes with its box, a number stays in view.
+// The whole prefix, indent included, is drawn as the box, so the text lines up the same at every depth.
 function markerRange(task: TaskLine, lineFrom: number) {
-  return { from: lineFrom + (task.ordered ? task.boxFrom : task.markerFrom), to: lineFrom + task.textFrom }
+  return { from: lineFrom, to: lineFrom + task.textFrom }
 }
 
 function toggleTaskAt(view: EditorView, pos: number): boolean {
@@ -19,32 +19,44 @@ function toggleTaskAt(view: EditorView, pos: number): boolean {
 
 class CheckboxWidget extends WidgetType {
   readonly checked: boolean
+  // A numbered task shows its number ahead of the box.
+  readonly number: string | null
   readonly interactive: boolean
 
-  constructor(checked: boolean, interactive: boolean) {
+  constructor(checked: boolean, number: string | null, interactive: boolean) {
     super()
     this.checked = checked
+    this.number = number
     this.interactive = interactive
   }
 
   eq(other: CheckboxWidget) {
-    return other.checked === this.checked && other.interactive === this.interactive
+    return other.checked === this.checked && other.number === this.number && other.interactive === this.interactive
   }
 
   toDOM(view: EditorView) {
+    const wrap = document.createElement('span')
+    wrap.className = 'cm-task-marker'
+    if (this.number) {
+      const number = document.createElement('span')
+      number.className = 'cm-task-number'
+      number.textContent = this.number
+      wrap.append(number)
+    }
     const box = document.createElement('span')
     box.className = this.checked ? 'cm-task-box is-checked' : 'cm-task-box'
     box.setAttribute('role', 'checkbox')
     box.setAttribute('aria-checked', String(this.checked))
-    if (!this.interactive) return box
-    box.title = this.checked ? 'Mark as not done' : 'Mark as done'
+    wrap.append(box)
+    if (!this.interactive) return wrap
+    box.setAttribute('aria-label', this.checked ? 'Mark as not done' : 'Mark as done')
     // Keeps the cursor and focus where they were.
     box.addEventListener('mousedown', (event) => event.preventDefault())
     box.addEventListener('click', (event) => {
       event.preventDefault()
-      toggleTaskAt(view, view.posAtDOM(box))
+      toggleTaskAt(view, view.posAtDOM(wrap))
     })
-    return box
+    return wrap
   }
 
   ignoreEvent() {
@@ -58,8 +70,15 @@ function buildDecorations(state: EditorState, interactive: boolean): DecorationS
   for (const task of parseTasks(doc.toString())) {
     const line = doc.line(task.line + 1)
     const marker = markerRange(task, line.from)
-    ranges.push(Decoration.replace({ widget: new CheckboxWidget(task.checked, interactive) }).range(marker.from, marker.to))
-    if (task.checked && marker.to < line.to) ranges.push(Decoration.mark({ class: 'cm-task-done' }).range(marker.to, line.to))
+    const number = task.ordered ? line.text.slice(task.markerFrom, task.boxFrom).trim() : null
+    // A hanging indent keeps wrapped lines under the text rather than under the box.
+    ranges.push(
+      Decoration.line({
+        class: task.checked ? 'cm-task-line is-done' : 'cm-task-line',
+        attributes: { style: `--task-depth: ${task.depth}` },
+      }).range(line.from),
+    )
+    ranges.push(Decoration.replace({ widget: new CheckboxWidget(task.checked, number, interactive) }).range(marker.from, marker.to))
   }
   return Decoration.set(ranges, true)
 }
@@ -126,7 +145,10 @@ function deleteTaskBox(view: EditorView): boolean {
   if (!range.empty || view.state.selection.ranges.length > 1) return false
   const marker = markerAtLine(view.state, range.head)
   if (!marker || (range.head !== marker.from && range.head !== marker.to)) return false
-  view.dispatch({ changes: marker, selection: { anchor: marker.from }, userEvent: 'delete.backward' })
+  // The indent stays, so a nested task becomes a nested line of text.
+  const line = view.state.doc.lineAt(range.head)
+  const from = line.from + parseTaskLine(line.text)!.markerFrom
+  view.dispatch({ changes: { from, to: marker.to }, selection: { anchor: from }, userEvent: 'delete.backward' })
   return true
 }
 

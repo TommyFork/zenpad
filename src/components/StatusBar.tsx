@@ -28,8 +28,8 @@ export function StatusBar({ text, expandedText, saveStatus }: StatusBarProps) {
       {tasks && (
         <>
           <span className="task-progress" title={progressLabel(tasks)}>
-            <ProgressRing progress={tasks} size={13} />
-            {tasks.done}/{tasks.total} · {progressPercent(tasks)}%
+            <ProgressRing progress={tasks} size={12} />
+            {progressPercent(tasks)}% done
           </span>
           <span className="dot" aria-hidden="true" />
         </>

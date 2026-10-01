@@ -301,21 +301,21 @@ test('checks off a checklist and shows its progress', async ({ page }) => {
   const boxes = page.locator('.cm-task-box')
   await expect(boxes).toHaveCount(3)
   const status = page.locator('.task-progress')
-  await expect(status).toHaveText('0/3 · 0%')
+  await expect(status).toHaveText('0% done')
 
   await boxes.nth(0).click()
   await expect(boxes.nth(0)).toHaveAttribute('aria-checked', 'true')
-  await expect(page.locator('.cm-task-done')).toHaveText('Book flights')
-  await expect(status).toHaveText('1/3 · 33%')
+  await expect(page.locator('.cm-task-line.is-done')).toHaveText('Book flights')
+  await expect(status).toHaveText('33% done')
 
   // ⌘ ⇧ Enter checks off the task the cursor is on.
   await page.keyboard.press('ControlOrMeta+Shift+Enter')
-  await expect(status).toHaveText('2/3 · 67%')
+  await expect(status).toHaveText('67% done')
 
   const row = page.locator('#sidebar-section-notes .doc-entry', { hasText: 'Trip' })
   await expect(row.getByRole('img', { name: '2 of 3 done' })).toBeVisible()
   await boxes.nth(1).click()
-  await expect(status).toHaveText('3/3 · 100%')
+  await expect(status).toHaveText('100% done')
   await expect(row.getByRole('img', { name: '3 of 3 done' })).toBeVisible()
 
   // The note keeps plain Markdown, so it copies and reloads as written.

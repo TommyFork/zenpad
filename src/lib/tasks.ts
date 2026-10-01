@@ -10,6 +10,8 @@ export interface TaskLine {
   // Where the item's text starts, after the box and one space.
   textFrom: number
   ordered: boolean
+  // How deeply the task is nested under the tasks above it, starting at 0.
+  depth: number
 }
 
 export interface TaskProgress {
@@ -33,6 +35,7 @@ export function parseTaskLine(text: string, line = 0): TaskLine | null {
     boxFrom,
     textFrom: Math.min(text.length, whole.length + 1),
     ordered: /\d/.test(marker),
+    depth: 0,
   }
 }
 
@@ -40,6 +43,7 @@ export function parseTaskLine(text: string, line = 0): TaskLine | null {
 export function parseTasks(text: string): TaskLine[] {
   const tasks: TaskLine[] = []
   let fence: string | null = null
+  const indents: number[] = []
   text.split('\n').forEach((line, index) => {
     const opener = FENCE.exec(line)?.[1]
     if (fence) {
@@ -51,7 +55,16 @@ export function parseTasks(text: string): TaskLine[] {
       return
     }
     const task = parseTaskLine(line, index)
-    if (task) tasks.push(task)
+    if (!task) {
+      // Prose between tasks starts a new list.
+      if (line.trim() !== '') indents.length = 0
+      return
+    }
+    // Nesting follows indentation relative to the tasks above, so two-space and four-space lists both work.
+    while (indents.length > 0 && indents[indents.length - 1] >= task.markerFrom) indents.pop()
+    task.depth = indents.length
+    indents.push(task.markerFrom)
+    tasks.push(task)
   })
   return tasks
 }
