@@ -80,7 +80,8 @@ export function CommandPalette({ items, onClose }: CommandPaletteProps) {
       setActiveIndex((index) => Math.min(index + 1, results.length - 1))
     } else if (event.key === 'ArrowUp') {
       event.preventDefault()
-      setActiveIndex((index) => Math.max(index - 1, 0))
+      // Wrap from the first row to the last
+      setActiveIndex((index) => (index > 0 ? index - 1 : Math.max(results.length - 1, 0)))
     } else if (event.key === 'Enter') {
       event.preventDefault()
       choose(results[activeIndex])
