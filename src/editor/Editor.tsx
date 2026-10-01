@@ -40,6 +40,8 @@ export interface EditorSelection {
 export interface EditorHandle {
   selection: () => EditorSelection | null
   replace: (selection: EditorSelection, insert: string) => boolean
+  // Puts text at the cursor, over any selected text.
+  insert: (text: string) => boolean
 }
 
 interface EditorProps {
@@ -109,6 +111,13 @@ export function Editor({
           scrollIntoView: true,
           userEvent: 'input.extract',
         })
+        view.focus()
+        return true
+      },
+      insert(text) {
+        const view = viewRef.current
+        if (!view || !openKey.current) return false
+        view.dispatch(view.state.replaceSelection(text), { scrollIntoView: true, userEvent: 'input.paste' })
         view.focus()
         return true
       },
