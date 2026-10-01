@@ -28,7 +28,7 @@ Zenpad was built for writing AI prompts, but it works for any writing where you 
 - **Preview and copy.** See the note exactly as it will be copied, with every snippet and variable filled in.
 - **Snippet map.** An interactive graph of your snippets and the notes that use them.
 - **Grouped by date.** The sidebar lists notes under Today, Yesterday, Previous 7 days, Previous 30 days, then by month and year. Click a heading to collapse it. Switch to one list with the button beside Notes, or in Settings.
-- **Search and commands.** `⌘ K` finds any note or snippet and runs any command.
+- **Search and commands.** `⌘ K` finds any note or snippet and runs any command. Results are ranked by best match across all three, with title hits first, then initials (`tfm` finds "Toggle focus mode"), then matches in the text.
 - **Private by design.** No server, no accounts, no analytics, and a strict Content Security Policy that blocks network requests.
 - **Works offline.** Install it as an app (PWA). Light and dark themes, plus serif, sans, and mono fonts.
 
