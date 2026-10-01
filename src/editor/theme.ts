@@ -85,6 +85,36 @@ const zenTheme = EditorView.theme({
   '.cm-variable-brace': { color: 'var(--faint)', fontFamily: 'var(--mono-font)', fontSize: '0.8em' },
   '.cm-variable-value': { textDecoration: 'underline 1.5px var(--variable-wash-strong)', textUnderlineOffset: '0.2em' },
   '.cm-snippet-tooltip-name.cm-variable-tooltip-name': { color: 'var(--variable-ink)', fontFamily: 'var(--mono-font)' },
+  // Sized in em so the box follows the editor's font size, and nudged onto the text's baseline.
+  '.cm-task-box': {
+    display: 'inline-block',
+    boxSizing: 'border-box',
+    width: '0.9em',
+    height: '0.9em',
+    margin: '0 0.5em -0.08em 0',
+    border: '1.5px solid var(--muted)',
+    borderRadius: '0.24em',
+    verticalAlign: 'baseline',
+    transition: 'background-color 0.15s, border-color 0.15s',
+  },
+  '.cm-content[contenteditable=true] .cm-task-box': { cursor: 'pointer' },
+  '.cm-content[contenteditable=true] .cm-task-box:hover': { borderColor: 'var(--accent)' },
+  '.cm-task-box.is-checked': {
+    borderColor: 'var(--accent)',
+    backgroundColor: 'var(--accent)',
+  },
+  // A check mark in the page color, so it reads on the accent in both themes.
+  '.cm-task-box.is-checked::after': {
+    content: '""',
+    display: 'block',
+    width: '0.24em',
+    height: '0.46em',
+    margin: '0.05em auto 0',
+    border: 'solid var(--bg)',
+    borderWidth: '0 0.11em 0.11em 0',
+    transform: 'rotate(45deg)',
+  },
+  '.cm-task-done': { color: 'var(--muted)', textDecoration: 'line-through', textDecorationColor: 'var(--faint)' },
   '.cm-tooltip': {
     border: '1px solid var(--line)',
     backgroundColor: 'var(--surface-raised)',

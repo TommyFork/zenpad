@@ -6,8 +6,10 @@ import type { Note, Snippet } from '../lib/db'
 import { notePreview, noteTitle } from '../lib/notes'
 import type { NoteGrouping, SidebarSection } from '../lib/settings'
 import { buildSnippetTree, snippetAncestors, type SnippetNode, type SnippetSort } from '../lib/snippets'
+import { progressLabel, taskProgress } from '../lib/tasks'
 import { formatRelativeTime, groupByDate } from '../lib/time'
 import { GitHubIcon, Icon } from './Icon'
+import { ProgressRing } from './ProgressRing'
 
 const RELATIVE_TIME_REFRESH_MS = 30_000
 const REPOSITORY_URL = 'https://github.com/TommyFork/zenpad'
@@ -147,6 +149,7 @@ export function Sidebar({
         {list.map((note) => {
           const doc: DocumentRef = { kind: 'note', id: note.id }
           const preview = notePreview(note.body)
+          const tasks = taskProgress(note.body)
           return (
             <li key={note.id} className="doc-row">
               <div className="doc-entry">
@@ -157,6 +160,11 @@ export function Sidebar({
                 >
                   <span className="doc-item-row">
                     <span className={note.body.trim() ? 'doc-title' : 'doc-title is-empty'}>{noteTitle(note.body)}</span>
+                    {tasks && (
+                      <span className="doc-progress" role="img" aria-label={progressLabel(tasks)} title={progressLabel(tasks)}>
+                        <ProgressRing progress={tasks} />
+                      </span>
+                    )}
                     <time className="doc-time">{formatRelativeTime(note.updatedAt, now)}</time>
                   </span>
                   {preview && <span className="doc-preview">{preview}</span>}

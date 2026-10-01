@@ -11,7 +11,7 @@ function meaningfulLines(body: string): string[] {
   return lines
     .filter((_, index) => !marks[index])
     .map((line) => substituteVariables(line, values))
-    .map((line) => line.replace(/^\s*(#{1,6}\s+|[-*>]\s+)/, '').trim())
+    .map((line) => line.replace(/^\s*(#{1,6}\s+|[-*>]\s+(\[[ xX]\](\s+|$))?)/, '').trim())
     .filter((line) => line.length > 0)
 }
 

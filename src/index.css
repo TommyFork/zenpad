@@ -615,6 +615,12 @@ kbd {
   font-variant-numeric: tabular-nums;
 }
 
+.doc-progress {
+  display: flex;
+  flex-shrink: 0;
+  align-self: center;
+}
+
 .doc-preview {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1207,6 +1213,44 @@ kbd {
   background: color-mix(in srgb, var(--bg) 85%, transparent);
   backdrop-filter: blur(6px);
   transition: opacity 0.6s var(--ease);
+}
+
+.task-progress {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.progress-ring {
+  flex-shrink: 0;
+}
+
+.progress-ring-track,
+.progress-ring-bar {
+  fill: none;
+  stroke-width: 2.5;
+}
+
+.progress-ring-track {
+  stroke: var(--line-strong);
+}
+
+.progress-ring-bar {
+  stroke: var(--accent);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.3s ease;
+}
+
+.progress-ring-fill {
+  fill: var(--accent);
+}
+
+.progress-ring-check {
+  fill: none;
+  stroke: var(--bg);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .statusbar .dot {
