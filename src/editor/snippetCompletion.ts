@@ -9,14 +9,13 @@ import {
 } from '@codemirror/autocomplete'
 import { Prec } from '@codemirror/state'
 import { keymap, type EditorView } from '@codemirror/view'
-import { IS_MAC } from '../app/keys'
 import { isValidSnippetName } from '../lib/snippets'
 import { variableCompletionSource } from './noteVariables'
 import { snippetBodiesField } from './snippetState'
 
 const DETAIL_LENGTH = 60
 const TYPED_SNIPPET = /(?<![\w@])@[a-z0-9_-]*/
-const PASTE_HINT = IS_MAC ? '⌥ ↵ paste text' : 'Alt ↵ paste text'
+const PASTE_HINT = '⇧ ↵ paste text'
 
 // Sections keep "create" below every existing snippet, even when the typed text matches it exactly.
 const EXISTING_SECTION = { name: 'Snippets', rank: 0 }
@@ -40,7 +39,7 @@ function createOption(name: string, onCreateSnippet: (name: string) => void): Co
   }
 }
 
-// ⌥ Enter on a suggested snippet pastes a copy of its text instead of the linked @reference.
+// Shift Enter on a suggested snippet pastes a copy of its text instead of the linked @reference.
 // Nested @snippets and $variables are pasted as written, so they stay live.
 function pasteSelectedSnippet(view: EditorView): boolean {
   if (completionStatus(view.state) !== 'active') return false
@@ -103,6 +102,6 @@ export function snippetCompletion(onCreateSnippet: (name: string) => void) {
       closeOnBlur: true,
       maxRenderedOptions: 40,
     }),
-    Prec.highest(keymap.of([{ key: 'Alt-Enter', run: pasteSelectedSnippet }])),
+    Prec.highest(keymap.of([{ key: 'Shift-Enter', run: pasteSelectedSnippet }])),
   ]
 }

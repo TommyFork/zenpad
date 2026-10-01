@@ -297,7 +297,7 @@ test('pastes a snippet as text from the @ list and the command palette', async (
   await editor.click()
   await page.keyboard.type('@ton')
   await expect(page.locator('.cm-tooltip-autocomplete')).toContainText('paste text')
-  await page.keyboard.press('Alt+Enter')
+  await page.keyboard.press('Shift+Enter')
   await expect(editor).toHaveText('Be direct and concise. Lead with the answer, then only the detail that matters.')
   await expect(page.locator('.cm-snippet')).toHaveCount(0)
 

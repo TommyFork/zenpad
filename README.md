@@ -23,7 +23,7 @@ Zenpad was built for writing AI prompts, but it works for any writing where you 
 
 - **Focused writing.** One centered page in a warm serif. The chrome fades away while you type.
 - **@snippets.** Snippets stay linked, so editing one updates every note that uses it. They can nest, and loops are caught.
-- **Templates.** Any snippet can also be pasted as plain text you're free to edit: press `⌥ Enter` on it in the `@` list, or run **Paste snippet text…** from `⌘ K`. The pasted copy won't change when the snippet does, but any `@snippets` and `$variables` inside it stay live.
+- **Templates.** Any snippet can also be pasted as plain text you're free to edit: press `⇧ Enter` on it in the `@` list, or run **Paste snippet text…** from `⌘ K`. The pasted copy won't change when the snippet does, but any `@snippets` and `$variables` inside it stay live.
 - **$variables.** Set `$branch = fix/login` once, or inline as `$branch{fix/login}`, and use `$branch` anywhere in the note. Snippets can use them too.
 - **Folded blocks.** Keep long context in a note without it taking over the page: put it between `$context = """` and `"""`, and it folds into a one-line chip. Use `$context` where it belongs in the prompt. Or paste the text, select it, and click **Fold away** to do all of that in one step.
 - **Preview and copy.** See the note exactly as it will be copied, with every snippet and variable filled in.
@@ -42,12 +42,12 @@ Zenpad was built for writing AI prompts, but it works for any writing where you 
 | `⌘ E` | Preview with snippets filled in, or back to editing |
 | `⌘ \` | Show or hide the sidebar |
 | `⌘ ⌥ N` | New note |
-| `⌥ Enter` in the `@` list | Paste the snippet's text instead of linking it |
+| `⇧ Enter` in the `@` list | Paste the snippet's text instead of linking it |
 | `⌘ click` an `@snippet` | Open it, or create it if it doesn't exist |
 | `⌘ click` a `$variable` | Jump to its value, ready to change |
 | `⌘ F` | Find in the current note |
 
-On Windows and Linux, use `Ctrl` in place of `⌘` and `Alt` in place of `⌥`.
+On Windows and Linux, use `Ctrl` in place of `⌘`.
 
 ## Snippets and variables
 
