@@ -87,3 +87,38 @@ export function writeLastOpened(key: string): void {
     console.warn('Zenpad: could not remember the last opened note.', error)
   }
 }
+
+const OPEN_BLOCKS_KEY = 'zenpad.openBlocks'
+
+// The folded blocks left open in each document, by document key, so they open the same way next time.
+let openBlocks: Record<string, string[]> | null = null
+
+function readAllOpenBlocks(): Record<string, string[]> {
+  if (openBlocks) return openBlocks
+  try {
+    const stored = localStorage.getItem(OPEN_BLOCKS_KEY)
+    openBlocks = stored ? (JSON.parse(stored) as Record<string, string[]>) : {}
+  } catch (error) {
+    console.warn('Zenpad: could not read which blocks were left open.', error)
+    openBlocks = {}
+  }
+  return openBlocks
+}
+
+export function readOpenBlocks(key: string): string[] {
+  const names = readAllOpenBlocks()[key]
+  return Array.isArray(names) ? names : []
+}
+
+export function writeOpenBlocks(key: string, names: string[]): void {
+  const all = readAllOpenBlocks()
+  if ((all[key] ?? []).join('\n') === names.join('\n')) return
+  // Only documents with something open are kept, so the list stays small.
+  if (names.length === 0) delete all[key]
+  else all[key] = names
+  try {
+    localStorage.setItem(OPEN_BLOCKS_KEY, JSON.stringify(all))
+  } catch (error) {
+    console.warn('Zenpad: could not remember which blocks were left open.', error)
+  }
+}

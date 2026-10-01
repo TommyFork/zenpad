@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildSampleLibrary } from './sampleData'
 import { isValidSnippetName, referencedSnippetNames } from './snippets'
+import { fillIn, parseBlocks } from './variables'
 
 describe('buildSampleLibrary', () => {
   const now = Date.UTC(2026, 0, 1)
@@ -28,5 +29,25 @@ describe('buildSampleLibrary', () => {
     const names = new Set(library.snippets.map((snippet) => snippet.name))
     const referenced = [...library.notes, ...library.snippets].flatMap((item) => referencedSnippetNames(item.body))
     expect([...new Set(referenced.filter((name) => !names.has(name)))]).toEqual(['not-written-yet'])
+  })
+
+  it('includes folded blocks, one of them used by a snippet', () => {
+    const bodies = new Map(library.snippets.map((snippet) => [snippet.name, snippet.body]))
+    const plan = library.notes.find((note) => note.body.includes('# Plan the sync feature'))!
+    expect(parseBlocks(plan.body.split('\n')).map((block) => block.name)).toEqual(['background', 'questions'])
+    const copied = fillIn(plan.body, bodies)
+    expect(copied).toContain('## 8. Rollout')
+    expect(copied).toContain('Which parts of zenpad need to change first?')
+    expect(copied.startsWith('# Plan the sync feature\n\nYou are a senior')).toBe(true)
+    expect(copied).not.toContain('"""')
+  })
+
+  it('keeps the folded block edge cases behaving as described', () => {
+    const edges = library.notes.find((note) => note.body.startsWith('# Folded block edge cases'))!
+    expect(fillIn(edges.body, new Map())).toBe(
+      '# Folded block edge cases\n\n\n' +
+        'Uses:   The first block named $first wins.\n  $inside = not a definition, just text in the block / Indented quotes still open and close a block. / $inside\n\n' +
+        'This block never closes, so it stays visible, and """ fills in as the quotes.',
+    )
   })
 })

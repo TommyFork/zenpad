@@ -573,6 +573,7 @@ export default function App() {
               onOpenSnippet={(name) => void workspace.openSnippetByName(name)}
               onCreateSnippet={(name) => void workspace.createSnippetInBackground(name)}
               onExtract={startExtract}
+              onFolded={(name) => showToast(`Folded into $${name}. Type a new name now, or press Esc to keep it.`)}
             />
           )}
           {previewing && (

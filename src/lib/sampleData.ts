@@ -23,7 +23,7 @@ interface SampleNote {
   favorite?: boolean
 }
 
-// Covers nesting, variables in snippets, an unused snippet, a missing reference, and a loop.
+// Covers nesting, variables in snippets (including a folded block), an unused snippet, a missing reference, and a loop.
 const SAMPLE_SNIPPETS: SampleSnippet[] = [
   {
     name: 'persona',
@@ -81,6 +81,11 @@ const SAMPLE_SNIPPETS: SampleSnippet[] = [
     age: 2 * DAY,
   },
   {
+    name: 'with-background',
+    body: 'Background for this task:\n\n$background\n\nAsk before assuming anything the background does not say.',
+    age: 1 * DAY,
+  },
+  {
     name: 'unused_snippet',
     body: 'Nothing references this snippet, so it sits alone on the snippet map.',
     age: 120 * DAY,
@@ -103,7 +108,43 @@ const LONG_NOTE_PARAGRAPHS = Array.from(
     `Paragraph ${index + 1}. A long note for checking scrolling, the word count, and how the editor behaves far from the top. Every tenth paragraph uses a snippet${index % 10 === 0 ? ': @style' : '.'}`,
 )
 
+// A design doc long enough that folding it away is worth it, for the folded block note.
+const DESIGN_DOC_SECTIONS = ['Goals', 'Non-goals', 'Storage', 'Conflicts', 'Offline', 'Migration', 'Testing', 'Rollout']
+const DESIGN_DOC = DESIGN_DOC_SECTIONS.flatMap((section, index) => [
+  `## ${index + 1}. ${section}`,
+  '',
+  `The ${section.toLowerCase()} section of the sync design. Sync runs in the background, never blocks typing, and keeps every write in IndexedDB first, so a lost connection loses nothing.`,
+  `- Decision ${index + 1}a: the newer copy of a note wins, matching backup imports.`,
+  `- Decision ${index + 1}b: snippets sync before the notes that use them.`,
+  '',
+]).join('\n')
+
 const SAMPLE_NOTES: SampleNote[] = [
+  {
+    body: `$repo = zenpad
+$background = """
+${DESIGN_DOC}
+"""
+$questions = """
+1. What breaks if two devices rename the same snippet at once?
+2. Which parts of $repo need to change first?
+3. What should the first pull request contain?
+"""
+
+# Plan the sync feature
+
+@persona
+
+@with-background
+
+Read the design above, then answer these:
+
+$questions
+
+@style`,
+    age: 20 * MINUTE,
+    favorite: true,
+  },
   {
     body: `$repo = zenpad
 $pr = 42
@@ -198,6 +239,49 @@ $ticket = ZEN-118
 Check out $branch, rebase $branch on main, and link $ticket in the PR.
 $HOME and $5 are not set, so they stay as written.`,
     age: 6 * DAY,
+  },
+  {
+    body: `# Folded context
+
+$logs = """
+[12:04:01] GET /notes 200 12ms
+[12:04:03] PUT /notes/42 500 3ms
+TypeError: Cannot read properties of undefined (reading 'body')
+    at saveNote (library.ts:88)
+    at flush (useAutosave.ts:31)
+Uses $repo, so the block fills in its own variables. @output-format
+"""
+$repo = zenpad
+$empty = """
+"""
+
+The block above opens folded. Click it to show the text, or Fold to hide it again.
+
+Here are the logs from $repo:
+$logs
+
+An empty block fills in as nothing: "$empty"`,
+    age: 6 * DAY + HOUR,
+  },
+  {
+    body: `# Folded block edge cases
+
+$first = """
+  The first block named $first wins.
+  $inside = not a definition, just text in the block
+"""
+$first = """
+A second block with the same name is ignored when filling in.
+"""
+    $indented = """
+Indented quotes still open and close a block.
+    """
+
+Uses: $first / $indented / $inside
+
+$unclosed = """
+This block never closes, so it stays visible, and $unclosed fills in as the quotes.`,
+    age: 6 * DAY + 2 * HOUR,
   },
   {
     body: `# Ideas

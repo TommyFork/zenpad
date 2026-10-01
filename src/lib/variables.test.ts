@@ -5,12 +5,14 @@ import {
   describeFillIn,
   fillIn,
   fillInParts,
+  parseBlocks,
   parseDefinitionLine,
   parseVariables,
   resolveVariables,
   stripVariableDefinitions,
   variableTokens,
   usedVariableNames,
+  wrapInBlock,
 } from './variables'
 
 const bodies = new Map([
@@ -71,6 +73,80 @@ describe('parseVariables', () => {
   })
 })
 
+const blockNote = `$context = """
+The repo is $repo.
+@tone
+
+It has tests.
+"""
+$repo = zenpad
+
+Use this context:
+$context`
+
+describe('parseBlocks', () => {
+  it('reads the lines between the opening and closing quotes', () => {
+    expect(parseBlocks(blockNote.split('\n'))).toEqual([
+      { name: 'context', value: 'The repo is $repo.\n@tone\n\nIt has tests.', open: 0, close: 5 },
+    ])
+  })
+
+  it('allows indented quotes and an empty block', () => {
+    expect(parseBlocks(['  $a =  """  ', '  """'])).toEqual([{ name: 'a', value: '', open: 0, close: 1 }])
+  })
+
+  it('ignores an opening line that is never closed', () => {
+    expect(parseBlocks(['$a = """', 'text', 'more'])).toEqual([])
+  })
+
+  it('ends a block at the first closing line', () => {
+    expect(parseBlocks(['$a = """', 'one', '"""', 'two', '"""'])).toEqual([{ name: 'a', value: 'one', open: 0, close: 2 }])
+  })
+})
+
+describe('wrapInBlock', () => {
+  function apply(text: string, from: number, to: number, baseName?: string) {
+    const wrap = wrapInBlock(text, from, to, baseName)
+    if (!wrap) return null
+    const next = text.slice(0, wrap.at) + wrap.block + text.slice(wrap.at, from) + wrap.reference + text.slice(to)
+    return { wrap, next, names: wrap.nameRanges.map((range) => next.slice(range.from, range.to)) }
+  }
+
+  it('moves whole lines into a block and copies the same', () => {
+    const text = 'Intro\nLong context\nmore context\nOutro'
+    const from = text.indexOf('Long')
+    const result = apply(text, from, text.indexOf('Outro'))!
+    expect(result.next).toBe('Intro\n$context = """\nLong context\nmore context\n"""\n$context\nOutro')
+    expect(result.names).toEqual(['context', 'context'])
+    expect(fillIn(result.next, bodies)).toBe(fillIn(text, bodies))
+  })
+
+  it('puts the block above the line when only part of it is selected', () => {
+    const text = 'Use this: big context here.'
+    const result = apply(text, 10, 26)!
+    expect(result.next).toBe('$context = """\nbig context here\n"""\nUse this: $context.')
+    expect(result.names).toEqual(['context', 'context'])
+    expect(fillIn(result.next, bodies)).toBe(text)
+  })
+
+  it('picks a name the note does not use yet', () => {
+    const text = '$context = x\n$context-2 = y\nmore'
+    expect(apply(text, text.indexOf('more'), text.length)!.wrap.name).toBe('context-3')
+  })
+
+  it('keeps the name apart from the text around it', () => {
+    const text = 'abc{def'
+    expect(apply(text, 1, 2)!.wrap.reference).toBe(' $context ')
+  })
+
+  it('refuses blank text, definitions, and closing quotes', () => {
+    expect(wrapInBlock('a\n  \nb', 2, 4)).toBeNull()
+    expect(wrapInBlock('$a = 1\ntext', 0, 11)).toBeNull()
+    expect(wrapInBlock('$a = """\nin\n"""\nout', 9, 11)).toBeNull()
+    expect(wrapInBlock('one\n"""\ntwo', 0, 11)).toBeNull()
+  })
+})
+
 describe('variableTokens', () => {
   it('finds uses and inline definitions with their ranges', () => {
     const line = 'Use $a and $B{x y}.'
@@ -83,6 +159,17 @@ describe('variableTokens', () => {
 
   it('leaves shell-style ${NAME} alone', () => {
     expect(variableTokens('echo ${HOME}')).toEqual([])
+  })
+})
+
+describe('parseVariables with blocks', () => {
+  it('reads a block as one value and skips definitions written inside it', () => {
+    expect(parseVariables('$a = """\n$b = inside\n"""\n$b = outside')).toEqual(
+      new Map([
+        ['a', '$b = inside'],
+        ['b', 'outside'],
+      ]),
+    )
   })
 })
 
@@ -109,6 +196,10 @@ describe('stripVariableDefinitions', () => {
 
   it('keeps blank lines that separate other text', () => {
     expect(stripVariableDefinitions('One\n\n$a = 1\nTwo')).toBe('One\n\nTwo')
+  })
+
+  it('drops whole blocks', () => {
+    expect(stripVariableDefinitions('$a = """\none\n\ntwo\n"""\n\nHello\n$b = """\nx\n"""\nBye')).toBe('Hello\nBye')
   })
 
   it('returns text without definitions unchanged', () => {
@@ -139,6 +230,10 @@ describe('fillIn', () => {
     expect(fillIn('$PR = 482\nPR $PR, not $pr', bodies)).toBe('PR 482, not $pr')
   })
 
+  it('fills in a block where it is used, with its variables and snippets', () => {
+    expect(fillIn(blockNote, bodies)).toBe('Use this context:\nThe repo is zenpad.\nBe concise.\n\nIt has tests.')
+  })
+
   it('matches the longest name', () => {
     expect(fillIn('$pr = 1\n$pr-url = u\n$pr-url and $pr-', bodies)).toBe('u and 1-')
   })
@@ -152,7 +247,7 @@ describe('fillInParts', () => {
   }
 
   it('produces the same text as fillIn', () => {
-    for (const text of [note, 'plain', '$a = 1\n$a$a @missing', '$x = @tone\n$x', 'On $b{x}-y, $b @review $c{@tone}']) {
+    for (const text of [note, blockNote, 'plain', '$a = 1\n$a$a @missing', '$x = @tone\n$x', 'On $b{x}-y, $b @review $c{@tone}']) {
       expect(flatten(fillInParts(text, bodies))).toBe(fillIn(text, bodies))
     }
   })
@@ -191,5 +286,9 @@ describe('describeFillIn', () => {
 describe('noteTitle', () => {
   it('skips variable definitions and fills in the rest', () => {
     expect(noteTitle(note)).toBe('PR 482')
+  })
+
+  it('skips blocks', () => {
+    expect(noteTitle(blockNote)).toBe('Use this context:')
   })
 })

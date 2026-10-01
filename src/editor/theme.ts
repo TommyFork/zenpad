@@ -65,6 +65,22 @@ const zenTheme = EditorView.theme({
     boxShadow: 'inset 2px 0 0 var(--variable-wash-strong)',
   },
   '.cm-line.cm-variable-line .cm-variable': { fontSize: '1em' },
+  // A block's value is part of what gets copied, so it keeps the prose font, with a rule tying it to its name.
+  '.cm-line.cm-variable-block-line': { paddingLeft: '10px', boxShadow: 'inset 2px 0 0 var(--variable-wash)' },
+  '.cm-variable-fold, .cm-variable-fold-button': {
+    font: 'inherit',
+    fontSize: '0.95em',
+    color: 'var(--variable-ink)',
+    backgroundColor: 'var(--variable-wash)',
+    border: 'none',
+    borderRadius: '5px',
+    padding: '0.05em 0.5em',
+    margin: '0 0.35em',
+    cursor: 'pointer',
+    verticalAlign: 'baseline',
+  },
+  '.cm-variable-fold:hover, .cm-variable-fold-button:hover': { backgroundColor: 'var(--variable-wash-strong)' },
+  '.cm-variable-fold-button': { backgroundColor: 'transparent', color: 'var(--muted)', margin: '0 0.6em' },
   // An inline definition shows its value in place, underlined so it reads as the value being set.
   '.cm-variable-brace': { color: 'var(--faint)', fontFamily: 'var(--mono-font)', fontSize: '0.8em' },
   '.cm-variable-value': { textDecoration: 'underline 1.5px var(--variable-wash-strong)', textUnderlineOffset: '0.2em' },
