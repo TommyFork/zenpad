@@ -85,6 +85,62 @@ const zenTheme = EditorView.theme({
   '.cm-variable-brace': { color: 'var(--faint)', fontFamily: 'var(--mono-font)', fontSize: '0.8em' },
   '.cm-variable-value': { textDecoration: 'underline 1.5px var(--variable-wash-strong)', textUnderlineOffset: '0.2em' },
   '.cm-snippet-tooltip-name.cm-variable-tooltip-name': { color: 'var(--variable-ink)', fontFamily: 'var(--mono-font)' },
+  // Tasks hang the box in front of the text, so wrapped lines and nested tasks line up under their text.
+  '.cm-line.cm-task-line': {
+    '--task-step': '1.6em',
+    paddingLeft: 'calc((var(--task-depth) + 1) * var(--task-step))',
+    textIndent: 'calc(-1 * var(--task-step))',
+  },
+  '.cm-task-marker': {
+    display: 'inline-flex',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: '0.35em',
+    minWidth: 'var(--task-step)',
+    paddingRight: '0.55em',
+    boxSizing: 'border-box',
+    textIndent: '0',
+    verticalAlign: 'top',
+    height: 'calc(1em * var(--editor-leading))',
+  },
+  '.cm-task-number': {
+    fontFamily: 'var(--ui-font)',
+    fontSize: '0.78em',
+    fontWeight: '550',
+    color: 'var(--faint)',
+    fontVariantNumeric: 'tabular-nums',
+  },
+  '.cm-task-box': {
+    position: 'relative',
+    flexShrink: '0',
+    width: '1.05em',
+    height: '1.05em',
+    boxSizing: 'border-box',
+    border: '1.5px solid var(--faint)',
+    borderRadius: '50%',
+    transition: 'border-color 0.15s, background-color 0.2s, box-shadow 0.2s',
+  },
+  // A wider invisible target, so the small circle is easy to hit on touch screens.
+  '.cm-task-box::before': { content: '""', position: 'absolute', inset: '-0.4em' },
+  '.cm-content[contenteditable=true] .cm-task-box': { cursor: 'pointer' },
+  '.cm-content[contenteditable=true] .cm-task-box:hover': {
+    borderColor: 'var(--accent)',
+    boxShadow: '0 0 0 3px var(--accent-wash)',
+  },
+  '.cm-task-box.is-checked': { borderColor: 'var(--accent)', backgroundColor: 'var(--accent)' },
+  // The check is cut from the page color, so it reads on every accent in both themes.
+  '.cm-task-box.is-checked::after': {
+    content: '""',
+    position: 'absolute',
+    inset: '0',
+    backgroundColor: 'var(--bg)',
+    maskImage:
+      "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.6 8.4l2.3 2.3 4.5-4.8' fill='none' stroke='black' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+    maskSize: '100% 100%',
+  },
+  // Done items step back rather than being crossed out, so the list stays easy to read.
+  '.cm-line.cm-task-line.is-done': { color: 'var(--muted)' },
+  '.cm-line.cm-task-line.is-done .cm-task-number': { opacity: '0.7' },
   '.cm-tooltip': {
     border: '1px solid var(--line)',
     backgroundColor: 'var(--surface-raised)',

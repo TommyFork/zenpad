@@ -615,6 +615,23 @@ kbd {
   font-variant-numeric: tabular-nums;
 }
 
+/* Sits at the start of the preview line, so the title row keeps just the title and time. */
+.doc-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 7px;
+  vertical-align: -2px;
+  font-size: 12px;
+  font-weight: 550;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.doc-progress.is-complete {
+  color: var(--accent-ink);
+}
+
 .doc-preview {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1207,6 +1224,35 @@ kbd {
   background: color-mix(in srgb, var(--bg) 85%, transparent);
   backdrop-filter: blur(6px);
   transition: opacity 0.6s var(--ease);
+}
+
+.task-progress {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.progress-ring {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.progress-ring-outline {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.progress-ring-fill {
+  fill: currentColor;
+}
+
+.progress-ring-check {
+  fill: none;
+  stroke: var(--bg);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .statusbar .dot {

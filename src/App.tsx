@@ -118,7 +118,7 @@ export default function App() {
   const [mapOpen, setMapOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<DocumentRef | null>(null)
   const [extracting, setExtracting] = useState<EditorSelection | null>(null)
-  const { ref: editorRef, selection: editorSelection, replace: replaceInEditor } = useEditorHandle()
+  const { ref: editorRef, selection: editorSelection, replace: replaceInEditor, toggleChecklist } = useEditorHandle()
   const [previewKey, setPreviewKey] = useState<string | null>(null)
   const [storagePersisted, setStoragePersisted] = useState<boolean | null>(null)
   const started = useRef(false)
@@ -355,6 +355,8 @@ export default function App() {
   useEffect(() => {
     shortcuts.current = (event) => {
       if (!hasModifier(event)) return
+      // ⌘ ⇧ Enter checks off a task in the editor, rather than copying.
+      if (event.shiftKey && event.code === 'Enter') return
       const handlers: Record<string, () => void> = {
         KeyK: () => setPaletteOpen((isOpen) => !isOpen),
         Enter: () => void workspace.copyCurrent(),
@@ -384,6 +386,9 @@ export default function App() {
     { id: 'new-note', label: 'New note', icon: 'plus', shortcut: `${MOD_LABEL} ⌥ N`, run: workspace.newNote },
     { id: 'new-snippet', label: 'New snippet', icon: 'at', run: workspace.newSnippet },
     { id: 'extract', label: 'Make a snippet from the selection', icon: 'at', shortcut: `${MOD_LABEL} ⌥ S`, run: startExtract },
+    ...(openDoc && !previewing
+      ? [{ id: 'checklist', label: 'Make a checklist', icon: 'checklist' as const, shortcut: `${MOD_LABEL} ⇧ L`, run: toggleChecklist }]
+      : []),
     { id: 'copy', label: 'Copy with snippets filled in', icon: 'copy', shortcut: `${MOD_LABEL} ↵`, run: workspace.copyCurrent },
     {
       id: 'preview',
