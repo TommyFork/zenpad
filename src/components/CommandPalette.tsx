@@ -77,10 +77,12 @@ export function CommandPalette({ items, onClose }: CommandPaletteProps) {
   function handleKeyDown(event: KeyboardEvent) {
     if (event.key === 'ArrowDown') {
       event.preventDefault()
-      setActiveIndex((index) => Math.min(index + 1, results.length - 1))
+      // Wrap from the last row to the first
+      setActiveIndex((index) => (index < results.length - 1 ? index + 1 : 0))
     } else if (event.key === 'ArrowUp') {
       event.preventDefault()
-      setActiveIndex((index) => Math.max(index - 1, 0))
+      // Wrap from the first row to the last
+      setActiveIndex((index) => (index > 0 ? index - 1 : Math.max(results.length - 1, 0)))
     } else if (event.key === 'Enter') {
       event.preventDefault()
       choose(results[activeIndex])
