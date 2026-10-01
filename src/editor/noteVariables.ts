@@ -1,6 +1,6 @@
 import type { Completion, CompletionContext, CompletionResult } from '@codemirror/autocomplete'
 import { codeFolding, foldEffect, foldedRanges, unfoldEffect } from '@codemirror/language'
-import { RangeSetBuilder, StateField, type EditorState, type StateEffect, type Text } from '@codemirror/state'
+import { EditorSelection, Facet, RangeSetBuilder, StateField, type EditorState, type StateEffect, type Text } from '@codemirror/state'
 import {
   Decoration,
   EditorView,
@@ -11,7 +11,15 @@ import {
   type ViewUpdate,
 } from '@codemirror/view'
 import { countWords } from '../lib/notes'
-import { parseBlocks, parseDefinitionLine, parseVariables, resolveVariables, variableTokens, type VariableToken } from '../lib/variables'
+import {
+  parseBlocks,
+  parseDefinitionLine,
+  parseVariables,
+  resolveVariables,
+  variableTokens,
+  wrapInBlock,
+  type VariableToken,
+} from '../lib/variables'
 import { snippetBodiesField } from './snippetState'
 
 const TOOLTIP_PREVIEW_LENGTH = 480
@@ -85,9 +93,50 @@ function foldBlock(state: EditorState, block: BlockRange) {
   }
 }
 
-// Folds every block, so a note opens with its long values tucked away.
-export function foldVariableBlocks(state: EditorState): StateEffect<unknown>[] {
-  return state.field(blocksField, false)?.map((block) => foldEffect.of({ from: block.foldFrom, to: block.foldTo })) ?? []
+// Folds every block the writer didn't leave open, so a note opens with its long values tucked away.
+export function foldVariableBlocks(state: EditorState, leftOpen: ReadonlySet<string> = new Set()): StateEffect<unknown>[] {
+  return (state.field(blocksField, false) ?? [])
+    .filter((block) => !leftOpen.has(block.name))
+    .map((block) => foldEffect.of({ from: block.foldFrom, to: block.foldTo }))
+}
+
+// The names of the blocks showing their text, to open them the same way next time.
+export function openBlockNames(state: EditorState): string[] {
+  const blocks = state.field(blocksField, false) ?? []
+  return [...new Set(blocks.filter((block) => !isFolded(state, block)).map((block) => block.name))]
+}
+
+// Whether selected text can be folded away into a block. Only notes can: a snippet's blocks wouldn't be
+// read as definitions in the notes that use it.
+export const blockWrapping = Facet.define<boolean, boolean>({ combine: (values) => values.some(Boolean) })
+
+export function canWrapSelection(state: EditorState): boolean {
+  const { from, to } = state.selection.main
+  return state.facet(blockWrapping) && wrapInBlock(state.doc.toString(), from, to) !== null
+}
+
+// Moves the selection into a folded block and selects both copies of its name, so typing renames it.
+export function wrapSelectionInBlock(view: EditorView): string | null {
+  const { from, to } = view.state.selection.main
+  const wrap = view.state.facet(blockWrapping) ? wrapInBlock(view.state.doc.toString(), from, to) : null
+  if (!wrap) return null
+  view.dispatch({
+    changes: [
+      { from: wrap.at, insert: wrap.block },
+      { from, to, insert: wrap.reference },
+    ],
+    selection: EditorSelection.create(
+      wrap.nameRanges.map((range) => EditorSelection.range(range.from, range.to)),
+      1,
+    ),
+    scrollIntoView: true,
+    userEvent: 'input.fold',
+  })
+  const number = view.state.doc.lineAt(wrap.at).number
+  const block = view.state.field(blocksField).find((range) => range.openLine === number)
+  if (block) view.dispatch({ effects: foldEffect.of({ from: block.foldFrom, to: block.foldTo }) })
+  view.focus()
+  return wrap.name
 }
 
 function plural(count: number, word: string): string {

@@ -90,6 +90,59 @@ export function definitionLines(lines: readonly string[]): boolean[] {
   return marks
 }
 
+export interface BlockWrap {
+  name: string
+  // Where the block goes: the start of the line the selection starts on.
+  at: number
+  block: string
+  // What replaces the selection.
+  reference: string
+  // Where the name sits once both are in, in the new text: in the opening line, then in the reference.
+  nameRanges: [{ from: number; to: number }, { from: number; to: number }]
+}
+
+// After "$name", a name character would lengthen the name, and "{" would make it an inline definition.
+const NAME_CHAR_AFTER = /[A-Za-z0-9_{-]/
+const NAME_CHAR_BEFORE = /[\w$\\]/
+
+// Moves the selected text into a block above it and leaves "$name" in its place, so the note copies the same.
+// Returns null when moving the text would change what it means: blank text, text holding definitions,
+// or a line of just """ that would end the block early.
+export function wrapInBlock(text: string, from: number, to: number, baseName = 'context'): BlockWrap | null {
+  const selected = text.slice(from, to)
+  if (selected.trim() === '') return null
+  const value = selected.endsWith('\n') ? selected.slice(0, -1) : selected
+  if (value.split('\n').some((line) => BLOCK_CLOSE.test(line))) return null
+
+  const lines = text.split('\n')
+  const first = text.slice(0, from).split('\n').length - 1
+  const last = first + value.split('\n').length - 1
+  if (definitionLines(lines).slice(first, last + 1).includes(true)) return null
+
+  const taken = parseVariables(text)
+  let name = baseName
+  for (let count = 2; taken.has(name); count++) name = `${baseName}-${count}`
+
+  // Spaces keep "$name" from running into the text around it.
+  const before = NAME_CHAR_BEFORE.test(text.charAt(from - 1)) ? ' ' : ''
+  const lineBreak = selected.endsWith('\n') ? '\n' : ''
+  const after = !lineBreak && NAME_CHAR_AFTER.test(text.charAt(to)) ? ' ' : ''
+  const at = text.slice(0, from).lastIndexOf('\n') + 1
+  const block = `$${name} = """\n${value}\n"""\n`
+  const reference = `${before}$${name}${after}${lineBreak}`
+  const referenceName = from + block.length + before.length + 1
+  return {
+    name,
+    at,
+    block,
+    reference,
+    nameRanges: [
+      { from: at + 1, to: at + 1 + name.length },
+      { from: referenceName, to: referenceName + name.length },
+    ],
+  }
+}
+
 // The raw values written in the text, from definition lines, blocks, and inline definitions.
 // When a name is set twice, the first one in the text wins.
 export function parseVariables(text: string): Map<string, string> {

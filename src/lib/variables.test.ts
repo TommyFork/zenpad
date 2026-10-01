@@ -12,6 +12,7 @@ import {
   stripVariableDefinitions,
   variableTokens,
   usedVariableNames,
+  wrapInBlock,
 } from './variables'
 
 const bodies = new Map([
@@ -100,6 +101,49 @@ describe('parseBlocks', () => {
 
   it('ends a block at the first closing line', () => {
     expect(parseBlocks(['$a = """', 'one', '"""', 'two', '"""'])).toEqual([{ name: 'a', value: 'one', open: 0, close: 2 }])
+  })
+})
+
+describe('wrapInBlock', () => {
+  function apply(text: string, from: number, to: number, baseName?: string) {
+    const wrap = wrapInBlock(text, from, to, baseName)
+    if (!wrap) return null
+    const next = text.slice(0, wrap.at) + wrap.block + text.slice(wrap.at, from) + wrap.reference + text.slice(to)
+    return { wrap, next, names: wrap.nameRanges.map((range) => next.slice(range.from, range.to)) }
+  }
+
+  it('moves whole lines into a block and copies the same', () => {
+    const text = 'Intro\nLong context\nmore context\nOutro'
+    const from = text.indexOf('Long')
+    const result = apply(text, from, text.indexOf('Outro'))!
+    expect(result.next).toBe('Intro\n$context = """\nLong context\nmore context\n"""\n$context\nOutro')
+    expect(result.names).toEqual(['context', 'context'])
+    expect(fillIn(result.next, bodies)).toBe(fillIn(text, bodies))
+  })
+
+  it('puts the block above the line when only part of it is selected', () => {
+    const text = 'Use this: big context here.'
+    const result = apply(text, 10, 26)!
+    expect(result.next).toBe('$context = """\nbig context here\n"""\nUse this: $context.')
+    expect(result.names).toEqual(['context', 'context'])
+    expect(fillIn(result.next, bodies)).toBe(text)
+  })
+
+  it('picks a name the note does not use yet', () => {
+    const text = '$context = x\n$context-2 = y\nmore'
+    expect(apply(text, text.indexOf('more'), text.length)!.wrap.name).toBe('context-3')
+  })
+
+  it('keeps the name apart from the text around it', () => {
+    const text = 'abc{def'
+    expect(apply(text, 1, 2)!.wrap.reference).toBe(' $context ')
+  })
+
+  it('refuses blank text, definitions, and closing quotes', () => {
+    expect(wrapInBlock('a\n  \nb', 2, 4)).toBeNull()
+    expect(wrapInBlock('$a = 1\ntext', 0, 11)).toBeNull()
+    expect(wrapInBlock('$a = """\nin\n"""\nout', 9, 11)).toBeNull()
+    expect(wrapInBlock('one\n"""\ntwo', 0, 11)).toBeNull()
   })
 })
 
