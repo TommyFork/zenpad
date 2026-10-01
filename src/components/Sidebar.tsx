@@ -38,6 +38,8 @@ interface SidebarProps {
   snippetParents: ReadonlyMap<string, string>
   noteGrouping: NoteGrouping
   onNoteGroupingChange: (grouping: NoteGrouping) => void
+  collapsedNoteGroups: string[]
+  onToggleNoteGroup: (label: string) => void
   snippetSort: SnippetSort
   onSnippetSortChange: (sort: SnippetSort) => void
   expandedSnippets: string[]
@@ -97,6 +99,8 @@ export function Sidebar({
   snippetParents,
   noteGrouping,
   onNoteGroupingChange,
+  collapsedNoteGroups,
+  onToggleNoteGroup,
   snippetSort,
   onSnippetSortChange,
   expandedSnippets,
@@ -168,13 +172,30 @@ export function Sidebar({
 
   function groupedNoteList(list: Note[]) {
     return groupByDate(list, (note) => note.updatedAt, now).map((group) => {
-      const labelId = `note-group-${group.label.toLowerCase().replaceAll(' ', '-')}`
+      const slug = group.label.toLowerCase().replaceAll(' ', '-')
+      const labelId = `note-group-${slug}`
+      const listId = `note-group-list-${slug}`
+      const collapsed = collapsedNoteGroups.includes(group.label)
       return (
-        <div key={group.label} className="doc-group" role="group" aria-labelledby={labelId}>
-          <h3 id={labelId} className="doc-group-label">
-            {group.label}
+        <div
+          key={group.label}
+          className={collapsed ? 'doc-group is-collapsed' : 'doc-group'}
+          role="group"
+          aria-labelledby={labelId}
+        >
+          <h3 className="doc-group-label">
+            <button
+              className="doc-group-toggle"
+              aria-expanded={!collapsed}
+              aria-controls={listId}
+              onClick={() => onToggleNoteGroup(group.label)}
+            >
+              <Icon name="chevron" size={11} />
+              <span id={labelId}>{group.label}</span>
+              {collapsed && <span className="doc-group-count">{group.items.length}</span>}
+            </button>
           </h3>
-          {noteList(group.items)}
+          {!collapsed && <div id={listId}>{noteList(group.items)}</div>}
         </div>
       )
     })

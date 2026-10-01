@@ -523,6 +523,52 @@ kbd {
   color: var(--faint);
 }
 
+.doc-group-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: -14px;
+  padding: 1px 6px 1px 0;
+  border-radius: 6px;
+  font: inherit;
+  color: inherit;
+  transition: color 0.15s;
+}
+
+@media (hover: hover) {
+  .doc-group-toggle:hover {
+    color: var(--ink);
+  }
+}
+
+.doc-group-toggle svg {
+  transform: rotate(90deg);
+  opacity: 0;
+  transition: transform 0.2s var(--ease), opacity 0.15s;
+}
+
+.doc-group-toggle:focus-visible svg,
+.is-narrow .doc-group-toggle svg,
+.doc-group.is-collapsed .doc-group-toggle svg {
+  opacity: 1;
+}
+
+.doc-group.is-collapsed .doc-group-toggle svg {
+  transform: none;
+}
+
+@media (hover: hover) {
+  .doc-group:hover .doc-group-toggle svg {
+    opacity: 1;
+  }
+}
+
+.doc-group-count {
+  margin-left: 3px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
 .doc-item {
   display: flex;
   flex-direction: column;

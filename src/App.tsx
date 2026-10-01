@@ -242,6 +242,13 @@ export default function App() {
     })
   }
 
+  function toggleNoteGroup(label: string) {
+    const collapsed = settings.collapsedNoteGroups
+    updateSettings({
+      collapsedNoteGroups: collapsed.includes(label) ? collapsed.filter((name) => name !== label) : [...collapsed, label],
+    })
+  }
+
   const closeMap = useCallback(() => {
     setMapOpen(false)
     focusEditor()
@@ -465,6 +472,8 @@ export default function App() {
     snippetParents,
     noteGrouping: settings.noteGrouping,
     onNoteGroupingChange: (noteGrouping: NoteGrouping) => updateSettings({ noteGrouping }),
+    collapsedNoteGroups: settings.collapsedNoteGroups,
+    onToggleNoteGroup: toggleNoteGroup,
     snippetSort: settings.snippetSort,
     onSnippetSortChange: (snippetSort: SnippetSort) => updateSettings({ snippetSort }),
     expandedSnippets: settings.expandedSnippets,
