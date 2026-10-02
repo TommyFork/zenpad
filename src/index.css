@@ -1365,6 +1365,12 @@ kbd {
   color: var(--ink);
 }
 
+.palette-label mark {
+  background: none;
+  color: var(--accent-ink);
+  font-weight: 650;
+}
+
 .palette-detail {
   flex: 1;
   min-width: 0;
@@ -1375,8 +1381,19 @@ kbd {
   color: var(--muted);
 }
 
+.palette-kind {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .palette-item kbd {
   margin-left: auto;
+}
+
+.palette-kind + kbd {
+  margin-left: 0;
 }
 
 .palette-empty {
