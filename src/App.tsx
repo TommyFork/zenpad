@@ -114,11 +114,19 @@ export default function App() {
   // Set after the sidebar is hidden with a click, so the show button appearing under the pointer doesn't slide it straight back in.
   const peekHeld = useRef(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  // The palette can also open as a picker of snippets to paste into the page as text.
+  const [pickingPaste, setPickingPaste] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [mapOpen, setMapOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<DocumentRef | null>(null)
   const [extracting, setExtracting] = useState<EditorSelection | null>(null)
-  const { ref: editorRef, selection: editorSelection, replace: replaceInEditor, toggleChecklist } = useEditorHandle()
+  const {
+    ref: editorRef,
+    selection: editorSelection,
+    replace: replaceInEditor,
+    insert: insertInEditor,
+    toggleChecklist,
+  } = useEditorHandle()
   const [previewKey, setPreviewKey] = useState<string | null>(null)
   const [storagePersisted, setStoragePersisted] = useState<boolean | null>(null)
   const started = useRef(false)
@@ -184,6 +192,7 @@ export default function App() {
 
   const closePalette = useCallback(() => {
     setPaletteOpen(false)
+    setPickingPaste(false)
     focusEditor()
   }, [])
 
@@ -315,6 +324,24 @@ export default function App() {
     return null
   }
 
+  function startPaste() {
+    if (previewing || !openDoc) {
+      showToast('Switch back to editing, then paste a snippet.')
+      return
+    }
+    if (snippets.length === 0) {
+      showToast('There are no snippets to paste yet.')
+      return
+    }
+    setPickingPaste(true)
+    setPaletteOpen(true)
+  }
+
+  // Pastes a copy of the snippet's text, which won't change when the snippet does.
+  function pasteSnippet(snippet: Snippet) {
+    if (!insertInEditor(snippet.body)) showToast(`Couldn't paste @${snippet.name}.`)
+  }
+
   function open(doc: DocumentRef) {
     if (isNarrow) setDrawerOpen(false)
     setMapOpen(false)
@@ -358,7 +385,10 @@ export default function App() {
       // ⌘ ⇧ Enter checks off a task in the editor, rather than copying.
       if (event.shiftKey && event.code === 'Enter') return
       const handlers: Record<string, () => void> = {
-        KeyK: () => setPaletteOpen((isOpen) => !isOpen),
+        KeyK: () => {
+          setPaletteOpen((isOpen) => !isOpen)
+          setPickingPaste(false)
+        },
         Enter: () => void workspace.copyCurrent(),
         KeyE: togglePreview,
         Backslash: () => setSidebar(!sidebarVisible),
@@ -385,6 +415,7 @@ export default function App() {
   const commands: Command[] = [
     { id: 'new-note', label: 'New note', icon: 'plus', shortcut: `${MOD_LABEL} ⌥ N`, run: workspace.newNote },
     { id: 'new-snippet', label: 'New snippet', icon: 'at', run: workspace.newSnippet },
+    { id: 'paste-snippet', label: 'Paste snippet text…', icon: 'at', run: startPaste },
     { id: 'extract', label: 'Make a snippet from the selection', icon: 'at', shortcut: `${MOD_LABEL} ⌥ S`, run: startExtract },
     ...(openDoc && !previewing
       ? [{ id: 'checklist', label: 'Make a checklist', icon: 'checklist' as const, shortcut: `${MOD_LABEL} ⇧ L`, run: toggleChecklist }]
@@ -427,7 +458,7 @@ export default function App() {
     { id: 'delete', label: openDoc?.kind === 'snippet' ? 'Delete this snippet' : 'Delete this note', icon: 'trash', run: () => requestDelete() },
   ]
 
-  const paletteItems: PaletteItem[] = paletteOpen
+  const searchItems: PaletteItem[] = paletteOpen && !pickingPaste
     ? [
         ...notes.map((note) => ({
           id: documentKey({ kind: 'note', id: note.id }),
@@ -458,6 +489,19 @@ export default function App() {
         })),
       ]
     : []
+
+  const pasteItems: PaletteItem[] =
+    paletteOpen && pickingPaste
+      ? snippets.map((snippet) => ({
+          id: `paste:${snippet.id}`,
+          group: 'Snippets' as const,
+          label: `@${snippet.name}`,
+          detail: snippet.body.split('\n')[0],
+          icon: 'at' as const,
+          searchText: `${snippet.name} ${snippet.body}`,
+          run: () => pasteSnippet(snippet),
+        }))
+      : []
 
   const classes = [
     'app',
@@ -595,7 +639,15 @@ export default function App() {
       </main>
 
       {mapOpen && <SnippetMap notes={notes} snippets={snippets} openDoc={openDoc} onOpen={open} onClose={closeMap} />}
-      {paletteOpen && <CommandPalette items={paletteItems} onClose={closePalette} />}
+      {paletteOpen && (
+        <CommandPalette
+          // Picking a snippet to paste starts a fresh palette, with an empty search.
+          key={pickingPaste ? 'paste' : 'search'}
+          items={pickingPaste ? pasteItems : searchItems}
+          placeholder={pickingPaste ? 'Paste the text of a snippet' : undefined}
+          onClose={closePalette}
+        />
+      )}
       {settingsOpen && (
         <SettingsPanel
           settings={settings}

@@ -23,6 +23,7 @@ Zenpad was built for writing AI prompts, but it works for any writing where you 
 
 - **Focused writing.** One centered page in a warm serif. The chrome fades away while you type.
 - **@snippets.** Snippets stay linked, so editing one updates every note that uses it. They can nest, and loops are caught.
+- **Templates.** Any snippet can also be pasted as plain text you're free to edit: press `⇧ Enter` on it in the `@` list, or run **Paste snippet text…** from `⌘ K`. The pasted copy won't change when the snippet does, but any `@snippets` and `$variables` inside it stay live.
 - **$variables.** Set `$branch = fix/login` once, or inline as `$branch{fix/login}`, and use `$branch` anywhere in the note. Snippets can use them too.
 - **Folded blocks.** Keep long context in a note without it taking over the page: put it between `$context = """` and `"""`, and it folds into a one-line chip. The text fills in right where the block sits, and `$context` repeats it anywhere else. Or paste the text, select it, and click **Fold away** to fold it in place.
 - **Checklists.** Write `- [ ]` or press `⌘ ⇧ L` to turn lines into a checklist, then click a circle to check it off. The status bar shows how far along the note is, and in the sidebar a small pie fills in beside the count of done tasks, turning into a check mark once every one is done.
@@ -44,6 +45,7 @@ Zenpad was built for writing AI prompts, but it works for any writing where you 
 | `⌘ ⇧ Enter` | Check off the task the cursor is on |
 | `⌘ \` | Show or hide the sidebar |
 | `⌘ ⌥ N` | New note |
+| `⇧ Enter` in the `@` list | Paste the snippet's text instead of linking it |
 | `⌘ click` an `@snippet` | Open it, or create it if it doesn't exist |
 | `⌘ click` a `$variable` | Jump to its value, ready to change |
 | `⌘ F` | Find in the current note |

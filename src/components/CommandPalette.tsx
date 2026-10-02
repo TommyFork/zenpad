@@ -54,10 +54,11 @@ function HighlightedLabel({ label, highlights }: { label: string; highlights: nu
 
 interface CommandPaletteProps {
   items: PaletteItem[]
+  placeholder?: string
   onClose: () => void
 }
 
-export function CommandPalette({ items, onClose }: CommandPaletteProps) {
+export function CommandPalette({ items, placeholder = 'Search notes, snippets, and commands', onClose }: CommandPaletteProps) {
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
   const listRef = useRef<HTMLDivElement>(null)
@@ -115,7 +116,7 @@ export function CommandPalette({ items, onClose }: CommandPaletteProps) {
               setQuery(event.target.value)
               setActiveIndex(0)
             }}
-            placeholder="Search notes, snippets, and commands"
+            placeholder={placeholder}
             aria-label="Search"
             role="combobox"
             aria-expanded="true"

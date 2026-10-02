@@ -324,3 +324,32 @@ test('checks off a checklist and shows its progress', async ({ page }) => {
   await expect(page.locator('.preview-host .cm-task-box')).toHaveCount(3)
   expect(errors).toEqual([])
 })
+
+test('pastes a snippet as text from the @ list and the command palette', async ({ page }) => {
+  const errors = watchForErrors(page)
+  await page.goto('/')
+  await expect(page.locator('.cm-content')).toContainText('Welcome to Zenpad')
+  await page.keyboard.press('ControlOrMeta+Alt+KeyN')
+  const editor = page.locator('.cm-content')
+  await expect(editor).not.toContainText('Welcome to Zenpad')
+
+  await editor.click()
+  await page.keyboard.type('@ton')
+  await expect(page.locator('.cm-tooltip-autocomplete')).toContainText('paste text')
+  await page.keyboard.press('Shift+Enter')
+  await expect(editor).toHaveText('Be direct and concise. Lead with the answer, then only the detail that matters.')
+  await expect(page.locator('.cm-snippet')).toHaveCount(0)
+
+  await page.keyboard.press('Enter')
+  await page.keyboard.press('ControlOrMeta+KeyK')
+  await page.keyboard.type('paste snippet')
+  await page.keyboard.press('Enter')
+  await expect(page.getByPlaceholder('Paste the text of a snippet')).toBeVisible()
+  await page.keyboard.type('tone')
+  await page.keyboard.press('Enter')
+  await expect(editor.locator('.cm-line')).toHaveText([
+    'Be direct and concise. Lead with the answer, then only the detail that matters.',
+    'Be direct and concise. Lead with the answer, then only the detail that matters.',
+  ])
+  expect(errors).toEqual([])
+})
