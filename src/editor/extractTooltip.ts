@@ -31,7 +31,7 @@ function selectionTooltip(state: EditorState, onExtract: () => void, onFolded: (
           const name = wrapSelectionInBlock(view)
           if (name) onFolded(name)
         }
-        dom.append(tooltipButton('Fold away', 'Move the selected text into a folded $variable in this note', fold))
+        dom.append(tooltipButton('Fold away', 'Fold the selected lines into a $variable block, right where they are', fold))
       }
       return { dom, offset: { x: 0, y: 6 } }
     },

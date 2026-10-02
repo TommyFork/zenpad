@@ -92,55 +92,39 @@ export function definitionLines(lines: readonly string[]): boolean[] {
 
 export interface BlockWrap {
   name: string
-  // Where the block goes: the start of the line the selection starts on.
-  at: number
-  block: string
-  // What replaces the selection.
-  reference: string
-  // Where the name sits once both are in, in the new text: in the opening line, then in the reference.
-  nameRanges: [{ from: number; to: number }, { from: number; to: number }]
+  // The whole lines the selection touches, which the block replaces.
+  from: number
+  to: number
+  insert: string
+  // Where the name sits in the opening line once the block is in, so it can be selected and renamed.
+  nameRange: { from: number; to: number }
 }
 
-// After "$name", a name character would lengthen the name, and "{" would make it an inline definition.
-const NAME_CHAR_AFTER = /[A-Za-z0-9_{-]/
-const NAME_CHAR_BEFORE = /[\w$\\]/
-
-// Moves the selected text into a block above it and leaves "$name" in its place, so the note copies the same.
-// Returns null when moving the text would change what it means: blank text, text holding definitions,
-// or a line of just """ that would end the block early.
+// Folds the lines the selection touches into a block in place. A block shows its text where it sits,
+// so the note copies the same. Returns null when folding would change what the text means: blank text,
+// text holding definitions, or a line of just """ that would end the block early.
 export function wrapInBlock(text: string, from: number, to: number, baseName = 'context'): BlockWrap | null {
-  const selected = text.slice(from, to)
-  if (selected.trim() === '') return null
-  const value = selected.endsWith('\n') ? selected.slice(0, -1) : selected
-  if (value.split('\n').some((line) => BLOCK_CLOSE.test(line))) return null
+  if (text.slice(from, to).trim() === '') return null
+  const start = text.slice(0, from).lastIndexOf('\n') + 1
+  // A selection that ends at the start of a line doesn't take that line.
+  const last = to > from && text.charAt(to - 1) === '\n' ? to - 1 : to
+  const lineEnd = text.indexOf('\n', last)
+  const end = lineEnd === -1 ? text.length : lineEnd
+  const value = text.slice(start, end)
+  const valueLines = value.split('\n')
+  if (valueLines.some((line) => BLOCK_CLOSE.test(line))) return null
+  // Inside a block, "$name{value}" is only text, so the value it sets would be lost.
+  if (valueLines.some((line) => variableTokens(line).some((token) => token.inline))) return null
 
-  const lines = text.split('\n')
-  const first = text.slice(0, from).split('\n').length - 1
-  const last = first + value.split('\n').length - 1
-  if (definitionLines(lines).slice(first, last + 1).includes(true)) return null
+  const first = text.slice(0, start).split('\n').length - 1
+  if (definitionLines(text.split('\n')).slice(first, first + valueLines.length).includes(true)) return null
 
   const taken = parseVariables(text)
   let name = baseName
   for (let count = 2; taken.has(name); count++) name = `${baseName}-${count}`
 
-  // Spaces keep "$name" from running into the text around it.
-  const before = NAME_CHAR_BEFORE.test(text.charAt(from - 1)) ? ' ' : ''
-  const lineBreak = selected.endsWith('\n') ? '\n' : ''
-  const after = !lineBreak && NAME_CHAR_AFTER.test(text.charAt(to)) ? ' ' : ''
-  const at = text.slice(0, from).lastIndexOf('\n') + 1
-  const block = `$${name} = """\n${value}\n"""\n`
-  const reference = `${before}$${name}${after}${lineBreak}`
-  const referenceName = from + block.length + before.length + 1
-  return {
-    name,
-    at,
-    block,
-    reference,
-    nameRanges: [
-      { from: at + 1, to: at + 1 + name.length },
-      { from: referenceName, to: referenceName + name.length },
-    ],
-  }
+  const insert = `$${name} = """\n${value}\n"""`
+  return { name, from: start, to: end, insert, nameRange: { from: start + 1, to: start + 1 + name.length } }
 }
 
 // The raw values written in the text, from definition lines, blocks, and inline definitions.
@@ -178,13 +162,14 @@ export function resolveVariables(
   return new Map([...raw.keys()].map((name) => [name, resolve(name, [name])]))
 }
 
-// Definition lines and blocks are settings for the note, not part of it, so they are left out of what gets copied.
-// Inline definitions stay, and are filled in like any other use.
+// Definition lines are settings for the note, not part of it, so they are left out of what gets copied.
+// Blocks and inline definitions stay, and show their value where they sit, like any other use.
 // A blank line that only separated the definitions from the rest goes with them.
 export function stripVariableDefinitions(text: string): string {
   const lines = text.split('\n')
-  const marks = definitionLines(lines)
-  if (!marks.includes(true)) return text
+  for (const block of parseBlocks(lines).toReversed()) lines.splice(block.open, block.close - block.open + 1, `$${block.name}`)
+  const marks = lines.map(isVariableDefinition)
+  if (!marks.includes(true)) return lines.join('\n')
   const kept = lines.filter((_, index) => !marks[index])
   const firstContent = lines.findIndex((line, index) => !marks[index] && line.trim() !== '')
   const head = firstContent === -1 ? marks : marks.slice(0, firstContent)
@@ -206,7 +191,7 @@ function prepare(text: string): string {
   )
 }
 
-// The note exactly as it would be copied: definition lines removed, snippets expanded, variables filled in.
+// The note exactly as it would be copied: definition lines removed, blocks shown in place, snippets expanded, variables filled in.
 // Snippet text can use the note's variables too, so one snippet can serve many notes.
 export function fillIn(text: string, bodies: ReadonlyMap<string, string>): string {
   const values = resolveVariables(parseVariables(text), bodies)

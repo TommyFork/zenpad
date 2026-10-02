@@ -82,7 +82,7 @@ const SAMPLE_SNIPPETS: SampleSnippet[] = [
   },
   {
     name: 'with-background',
-    body: 'Background for this task:\n\n$background\n\nAsk before assuming anything the background does not say.',
+    body: 'The background for this task follows. Ask before assuming anything it does not say.',
     age: 1 * DAY,
   },
   {
@@ -122,14 +122,6 @@ const DESIGN_DOC = DESIGN_DOC_SECTIONS.flatMap((section, index) => [
 const SAMPLE_NOTES: SampleNote[] = [
   {
     body: `$repo = zenpad
-$background = """
-${DESIGN_DOC}
-"""
-$questions = """
-1. What breaks if two devices rename the same snippet at once?
-2. Which parts of $repo need to change first?
-3. What should the first pull request contain?
-"""
 
 # Plan the sync feature
 
@@ -137,9 +129,17 @@ $questions = """
 
 @with-background
 
+$background = """
+${DESIGN_DOC}
+"""
+
 Read the design above, then answer these:
 
-$questions
+$questions = """
+1. What breaks if two devices rename the same snippet at once?
+2. Which parts of $repo need to change first?
+3. What should the first pull request contain?
+"""
 
 @style`,
     age: 20 * MINUTE,
@@ -243,6 +243,10 @@ $HOME and $5 are not set, so they stay as written.`,
   {
     body: `# Folded context
 
+The blocks below open folded. Click one to show the text, or Fold to hide it again.
+A block fills in where it sits, so there is no need to write its name again.
+
+Here are the logs from $repo:
 $logs = """
 [12:04:01] GET /notes 200 12ms
 [12:04:03] PUT /notes/42 500 3ms
@@ -255,11 +259,7 @@ $repo = zenpad
 $empty = """
 """
 
-The block above opens folded. Click it to show the text, or Fold to hide it again.
-
-Here are the logs from $repo:
-$logs
-
+Writing a block's name again repeats its text somewhere else.
 An empty block fills in as nothing: "$empty"`,
     age: 6 * DAY + HOUR,
   },
@@ -271,7 +271,7 @@ $first = """
   $inside = not a definition, just text in the block
 """
 $first = """
-A second block with the same name is ignored when filling in.
+A second block with the same name shows the first one's text.
 """
     $indented = """
 Indented quotes still open and close a block.

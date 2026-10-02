@@ -178,7 +178,7 @@ test('sets a variable inline and fills it in where it was set', async ({ page })
   expect(errors).toEqual([])
 })
 
-test('folds a block variable and fills it in where it is used', async ({ page }) => {
+test('folds a block variable and fills it in where it sits and where it is used', async ({ page }) => {
   const errors = watchForErrors(page)
   await page.goto('/')
   await expect(page.locator('.cm-content')).toContainText('Welcome to Zenpad')
@@ -186,7 +186,7 @@ test('folds a block variable and fills it in where it is used', async ({ page })
   await expect(page.locator('.cm-content')).not.toContainText('Welcome to Zenpad')
 
   await page.locator('.cm-content').click()
-  await page.keyboard.insertText('$context = """\nLong context line one.\nLine two.\n"""\n\nUse this: $context')
+  await page.keyboard.insertText('$context = """\nLong context line one.\nLine two.\n"""\n\nAgain: $context')
   const editor = page.locator('.cm-content')
   await expect(editor).toContainText('Long context line one.')
 
@@ -195,7 +195,7 @@ test('folds a block variable and fills it in where it is used', async ({ page })
   await expect(page.locator('.cm-variable-fold')).toHaveText('2 lines · 6 words')
 
   await page.keyboard.press('ControlOrMeta+KeyE')
-  await expect(page.locator('.preview-host .cm-content')).toHaveText('Use this: Long context line one.Line two.')
+  await expect(page.locator('.preview-host .cm-content')).toHaveText('Long context line one.Line two.Again: Long context line one.Line two.')
   await page.keyboard.press('ControlOrMeta+KeyE')
 
   await page.locator('.cm-variable-fold').click()
@@ -203,7 +203,7 @@ test('folds a block variable and fills it in where it is used', async ({ page })
   expect(errors).toEqual([])
 })
 
-test('folds selected text away into a block and renames it', async ({ page }) => {
+test('folds selected text into a block in place and renames it', async ({ page }) => {
   const errors = watchForErrors(page)
   await page.goto('/')
   await expect(page.locator('.cm-content')).toContainText('Welcome to Zenpad')
@@ -220,10 +220,9 @@ test('folds selected text away into a block and renames it', async ({ page }) =>
 
   await expect(editor).not.toContainText('Big pasted context')
   await expect(page.locator('.cm-variable-fold')).toHaveText('1 line · 3 words')
-  // Both copies of the name are selected, so typing renames the block and its use together.
+  // The name is selected, so typing renames the block.
   await page.keyboard.type('background')
-  await page.keyboard.press('Escape')
-  await expect(page.locator('.cm-variable', { hasText: '$background' })).toHaveCount(2)
+  await expect(page.locator('.cm-variable', { hasText: '$background' })).toHaveCount(1)
 
   await page.keyboard.press('ControlOrMeta+KeyE')
   await expect(page.locator('.preview-host .cm-content')).toHaveText('IntroBig pasted contextOutro')
