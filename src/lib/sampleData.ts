@@ -186,10 +186,10 @@ The autosave hook in $repo{zenpad} debounces writes. Suggest a cleaner way to fl
   {
     body: `Grocery list
 
-- oat milk
-- coffee beans
-- lemons
-- sourdough`,
+- [x] oat milk
+- [ ] coffee beans
+- [x] lemons
+- [ ] sourdough`,
     age: 9 * HOUR,
   },
   {
@@ -343,6 +343,24 @@ Summarize these notes into decisions and action items.
 
 @output-format`,
     age: 48 * DAY,
+  },
+  {
+    body: `# Release 1.2 checklist
+
+Every box is checked, so the sidebar shows a full ring.
+
+- [x] Bump the version
+  - [x] package.json
+  - [X] the changelog
+1. [x] Tag the release
+2. [x] Deploy
+
+The example below is code, so it isn't counted:
+
+\`\`\`md
+- [ ] not a real task
+\`\`\``,
+    age: 30 * DAY,
   },
   {
     body: `A note without a heading. Its first line becomes the title in the sidebar, even when the line is long enough that it has to be cut short somewhere along the way.`,

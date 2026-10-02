@@ -7,6 +7,7 @@ import { hasModifier, MOD_LABEL } from '../app/keys'
 import { useEscape } from '../app/useEscape'
 import { flattenExpansion, type ExpansionSpan } from '../lib/snippets'
 import { fillInParts } from '../lib/variables'
+import { checklists } from '../editor/checklists'
 import { replaceState } from '../editor/replaceState'
 import { zenAppearance } from '../editor/theme'
 
@@ -104,6 +105,7 @@ export function NotePreview({ text, snippets, highlights, onOpenSnippet, onExit 
           new LanguageSupport(markdownLanguage),
           EditorView.contentAttributes.of({ 'aria-label': 'Preview with snippets filled in' }),
           EditorView.decorations.of(spanDecorations(expansion.spans, highlights)),
+          checklists({ interactive: false }),
           placeholder('Nothing here yet.'),
           EditorView.domEventHandlers({
             mousedown(event) {

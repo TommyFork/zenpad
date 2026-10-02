@@ -284,3 +284,43 @@ test('groups notes by date in the sidebar', async ({ page }) => {
   await expect(notes.getByRole('group')).toHaveCount(0)
   expect(errors).toEqual([])
 })
+
+test('checks off a checklist and shows its progress', async ({ page }) => {
+  const errors = watchForErrors(page)
+  await page.goto('/')
+  await expect(page.locator('.cm-content')).toContainText('Welcome to Zenpad')
+  await page.keyboard.press('ControlOrMeta+Alt+KeyN')
+  await expect(page.locator('.cm-content')).not.toContainText('Welcome to Zenpad')
+
+  // ⌘ ⇧ L starts a checklist, and Enter carries it on to the next line.
+  await page.locator('.cm-content').click()
+  await page.keyboard.type('Trip\n')
+  await page.keyboard.press('ControlOrMeta+Shift+KeyL')
+  await page.keyboard.type('Book flights\nPack\nWater the plants')
+  const boxes = page.locator('.cm-task-box')
+  await expect(boxes).toHaveCount(3)
+  const status = page.locator('.task-progress')
+  await expect(status).toHaveText('0% done')
+
+  await boxes.nth(0).click()
+  await expect(boxes.nth(0)).toHaveAttribute('aria-checked', 'true')
+  await expect(page.locator('.cm-task-line.is-done')).toHaveText('Book flights')
+  await expect(status).toHaveText('33% done')
+
+  // ⌘ ⇧ Enter checks off the task the cursor is on.
+  await page.keyboard.press('ControlOrMeta+Shift+Enter')
+  await expect(status).toHaveText('67% done')
+
+  const row = page.locator('#sidebar-section-notes .doc-entry', { hasText: 'Trip' })
+  await expect(row.getByRole('img', { name: '2 of 3 done' })).toBeVisible()
+  await boxes.nth(1).click()
+  await expect(status).toHaveText('100% done')
+  await expect(row.getByRole('img', { name: '3 of 3 done' })).toBeVisible()
+
+  // The note keeps plain Markdown, so it copies and reloads as written.
+  await page.reload()
+  await expect(page.locator('.cm-task-box[aria-checked="true"]')).toHaveCount(3)
+  await page.keyboard.press('ControlOrMeta+KeyE')
+  await expect(page.locator('.preview-host .cm-task-box')).toHaveCount(3)
+  expect(errors).toEqual([])
+})
