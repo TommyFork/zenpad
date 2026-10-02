@@ -5,6 +5,7 @@ import { LanguageSupport } from '@codemirror/language'
 import { highlightSelectionMatches, search, searchKeymap } from '@codemirror/search'
 import { EditorState, Prec, type Extension } from '@codemirror/state'
 import { drawSelection, EditorView, keymap, placeholder, tooltips } from '@codemirror/view'
+import { checklists, toggleChecklistLines } from './checklists'
 import { extractTooltip } from './extractTooltip'
 import { foldedRanges } from '@codemirror/language'
 import { parseDocumentKey } from '../app/documents'
@@ -42,6 +43,8 @@ export interface EditorHandle {
   replace: (selection: EditorSelection, insert: string) => boolean
   // Puts text at the cursor, over any selected text.
   insert: (text: string) => boolean
+  // Turns the selected lines into a checklist, or back into plain lines.
+  toggleChecklist: () => void
 }
 
 interface EditorProps {
@@ -121,6 +124,12 @@ export function Editor({
         view.focus()
         return true
       },
+      toggleChecklist() {
+        const view = viewRef.current
+        if (!view) return
+        toggleChecklistLines(view)
+        view.focus()
+      },
     }),
     [],
   )
@@ -150,6 +159,7 @@ export function Editor({
       snippetChips((name) => callbacks.current.onOpenSnippet(name)),
       snippetCompletion((name) => callbacks.current.onCreateSnippet(name)),
       noteVariables,
+      checklists({ interactive: true }),
       extractTooltip(
         () => callbacks.current.onExtract(),
         (name) => callbacks.current.onFolded(name),

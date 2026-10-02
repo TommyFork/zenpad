@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useEscape } from '../app/useEscape'
+import { queryTerms, rankItems } from '../lib/search'
 import { Icon, type IconName } from './Icon'
 
 export type PaletteGroup = 'Notes' | 'Snippets' | 'Commands'
@@ -19,33 +20,36 @@ const GROUP_ORDER: PaletteGroup[] = ['Notes', 'Snippets', 'Commands']
 const IDLE_LIMIT_PER_GROUP = 5
 const RESULT_LIMIT = 60
 
-function score(item: PaletteItem, terms: string[]): number {
-  const label = item.label.toLowerCase()
-  const text = item.searchText.toLowerCase()
-  let total = 0
-  for (const term of terms) {
-    if (label.startsWith(term)) total += 3
-    else if (label.includes(term)) total += 2
-    else if (text.includes(term)) total += 1
-    else return 0
-  }
-  return total
+interface PaletteRow {
+  item: PaletteItem
+  highlights: number[]
 }
 
-function visibleItems(items: PaletteItem[], query: string): PaletteItem[] {
-  const terms = query.toLowerCase().split(/\s+/).filter(Boolean)
-  if (terms.length === 0) {
+const GROUP_KIND: Record<PaletteGroup, string> = { Notes: 'Note', Snippets: 'Snippet', Commands: 'Command' }
+
+function visibleRows(items: PaletteItem[], query: string): PaletteRow[] {
+  if (queryTerms(query).length === 0) {
     return GROUP_ORDER.flatMap((group) => {
       const inGroup = items.filter((item) => item.group === group)
       return group === 'Commands' ? inGroup : inGroup.slice(0, IDLE_LIMIT_PER_GROUP)
-    })
+    }).map((item) => ({ item, highlights: [] }))
   }
-  const ranked = items
-    .map((item) => ({ item, score: score(item, terms) }))
-    .filter((entry) => entry.score > 0)
-    .sort((a, b) => b.score - a.score)
-    .map((entry) => entry.item)
-  return GROUP_ORDER.flatMap((group) => ranked.filter((item) => item.group === group)).slice(0, RESULT_LIMIT)
+  return rankItems(items, query, (item) => ({ label: item.label, text: item.searchText }))
+    .slice(0, RESULT_LIMIT)
+    .map(({ item, match }) => ({ item, highlights: match.highlights }))
+}
+
+function HighlightedLabel({ label, highlights }: { label: string; highlights: number[] }) {
+  if (highlights.length === 0) return label
+  const marked = new Set(highlights)
+  const parts: { text: string; mark: boolean }[] = []
+  for (let index = 0; index < label.length; index++) {
+    const mark = marked.has(index)
+    const last = parts[parts.length - 1]
+    if (last && last.mark === mark) last.text += label[index]
+    else parts.push({ text: label[index], mark })
+  }
+  return parts.map((part, index) => (part.mark ? <mark key={index}>{part.text}</mark> : part.text))
 }
 
 interface CommandPaletteProps {
@@ -59,7 +63,10 @@ export function CommandPalette({ items, placeholder = 'Search notes, snippets, a
   const [activeIndex, setActiveIndex] = useState(0)
   const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const results = useMemo(() => visibleItems(items, query), [items, query])
+  const rows = useMemo(() => visibleRows(items, query), [items, query])
+  const results = rows.map((row) => row.item)
+  // Search results are ranked across types, so group headings only make sense when idle.
+  const searching = queryTerms(query).length > 0
 
   useEffect(() => inputRef.current?.focus(), [])
 
@@ -121,9 +128,9 @@ export function CommandPalette({ items, placeholder = 'Search notes, snippets, a
         </div>
         <div className="palette-results" id="palette-results" role="listbox" ref={listRef}>
           {results.length === 0 && <p className="palette-empty">Nothing matches “{query}”.</p>}
-          {results.map((item, index) => (
+          {rows.map(({ item, highlights }, index) => (
             <div key={item.id} role="presentation">
-              {(index === 0 || results[index - 1].group !== item.group) && <div className="palette-group">{item.group}</div>}
+              {!searching && (index === 0 || results[index - 1].group !== item.group) && <div className="palette-group">{item.group}</div>}
               <div
                 id={`palette-${item.id}`}
                 role="option"
@@ -133,8 +140,11 @@ export function CommandPalette({ items, placeholder = 'Search notes, snippets, a
                 onClick={() => choose(item)}
               >
                 <Icon name={item.icon} size={16} />
-                <span className="palette-label">{item.label}</span>
+                <span className="palette-label">
+                  <HighlightedLabel label={item.label} highlights={highlights} />
+                </span>
                 {item.detail && <span className="palette-detail">{item.detail}</span>}
+                {searching && <span className="palette-kind">{GROUP_KIND[item.group]}</span>}
                 {item.shortcut && <kbd>{item.shortcut}</kbd>}
               </div>
             </div>

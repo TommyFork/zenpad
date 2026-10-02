@@ -6,6 +6,11 @@ describe('noteTitle', () => {
     expect(noteTitle('\n\n# Refactor plan\nsteps')).toBe('Refactor plan')
   })
 
+  it('leaves out task boxes', () => {
+    expect(noteTitle('- [ ] Book flights\n- [x] Pack')).toBe('Book flights')
+    expect(notePreview('Trip\n- [x] Pack\n- [ ] Go')).toBe('Pack Go')
+  })
+
   it('falls back to Untitled for empty notes', () => {
     expect(noteTitle('   \n ')).toBe('Untitled')
   })
