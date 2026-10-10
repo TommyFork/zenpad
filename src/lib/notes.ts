@@ -1,15 +1,17 @@
+import { commentLines } from './comments'
 import { definitionLines, parseVariables, resolveVariables, substituteVariables } from './variables'
 
 const TITLE_LENGTH = 80
 const PREVIEW_LENGTH = 120
 
 function meaningfulLines(body: string): string[] {
-  // Variable definitions usually sit at the top of a note, but they aren't what it's about.
+  // Variable definitions and comments often sit at the top of a note, but they aren't what it's about.
   const values = resolveVariables(parseVariables(body))
   const lines = body.split('\n')
-  const marks = definitionLines(lines)
+  const definitions = definitionLines(lines)
+  const comments = commentLines(lines)
   return lines
-    .filter((_, index) => !marks[index])
+    .filter((_, index) => !definitions[index] && !comments[index])
     .map((line) => substituteVariables(line, values))
     .map((line) => line.replace(/^\s*(#{1,6}\s+|[-*>]\s+(\[[ xX]\](\s+|$))?)/, '').trim())
     .filter((line) => line.length > 0)

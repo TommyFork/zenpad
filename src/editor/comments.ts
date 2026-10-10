@@ -2,7 +2,7 @@ import { EditorSelection, Prec, RangeSetBuilder, StateField, type EditorState } 
 import { Decoration, EditorView, keymap, type DecorationSet } from '@codemirror/view'
 import { commentLines, toggleCommentLines } from '../lib/comments'
 
-const commentLine = Decoration.line({ class: 'cm-comment-line', attributes: { title: "A comment, left out when you copy" } })
+const commentLine = Decoration.line({ class: 'cm-comment-line' })
 
 function buildDecorations(state: EditorState): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>()

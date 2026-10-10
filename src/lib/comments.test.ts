@@ -49,6 +49,15 @@ describe('toggleCommentLines', () => {
     expect(toggleCommentLines('  // one\n//two', 0, 10).insert).toBe('  one\ntwo')
   })
 
+  it('comments a blank first line', () => {
+    expect(toggleCommentLines('\nfoo', 0, 0)).toEqual({ from: 0, to: 0, insert: '// ' })
+  })
+
+  it("toggles code's own comments inside fenced code", () => {
+    const text = '```\n// code\n```'
+    expect(toggleCommentLines(text, 4, 4)).toEqual({ from: 4, to: 11, insert: 'code' })
+  })
+
   it('stops before a line the selection only reaches the start of', () => {
     expect(toggleCommentLines('one\ntwo', 0, 4)).toEqual({ from: 0, to: 3, insert: '// one' })
   })
@@ -58,6 +67,10 @@ describe('copying with comments', () => {
   it('leaves comments in notes and snippets out of the copy', () => {
     const bodies = new Map([['tone', '// keep this short\nBe brief.']])
     expect(fillIn('// draft for Sam\n\nHi @tone\n// remember to attach the file', bodies)).toBe('Hi Be brief.')
+  })
+
+  it('leaves comment lines out of a block value too', () => {
+    expect(fillIn('$ctx = """\nkeep\n// drop\n"""', new Map())).toBe('keep')
   })
 
   it("ignores snippets and variables only a comment mentions", () => {

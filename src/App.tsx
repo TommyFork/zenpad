@@ -421,7 +421,7 @@ export default function App() {
     ...(openDoc && !previewing
       ? [
           { id: 'checklist', label: 'Make a checklist', icon: 'checklist' as const, shortcut: `${MOD_LABEL} ⇧ L`, run: toggleChecklist },
-          { id: 'comment', label: 'Comment out lines (left out when copying)', icon: 'pencil' as const, shortcut: `${MOD_LABEL} /`, run: toggleComment },
+          { id: 'comment', label: 'Comment out lines (left out when copying)', icon: 'comment' as const, shortcut: `${MOD_LABEL} /`, run: toggleComment },
         ]
       : []),
     { id: 'copy', label: 'Copy with snippets filled in', icon: 'copy', shortcut: `${MOD_LABEL} ↵`, run: workspace.copyCurrent },

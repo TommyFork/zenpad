@@ -58,8 +58,10 @@ export interface CommentToggle {
 }
 
 // Comments out the lines a selection touches, or uncomments them when every non-blank one is already a comment.
+// Inside fenced code it toggles the code's own // comments too, which is what someone editing code expects.
 export function toggleCommentLines(text: string, from: number, to: number): CommentToggle {
-  const start = text.lastIndexOf('\n', from - 1) + 1
+  // lastIndexOf clamps -1 to 0, so a text starting with a newline would find it and skip the first line.
+  const start = from === 0 ? 0 : text.lastIndexOf('\n', from - 1) + 1
   // A selection that ends at the start of a line doesn't take that line.
   const last = to > from && text.charAt(to - 1) === '\n' ? to - 1 : to
   const lineEnd = text.indexOf('\n', last)
