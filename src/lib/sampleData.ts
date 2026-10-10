@@ -284,6 +284,22 @@ This block never closes, so it stays visible, and $unclosed fills in as the quot
     age: 6 * DAY + 2 * HOUR,
   },
   {
+    body: `# Comment edge cases
+
+// A comment line is a note to yourself. Preview and copy leave it out.
+Ask for a summary of the meeting. @style
+  // Indented comments count too, and so does one that sets $topic{ignored}, which stays unset.
+
+Links like https://zenpad.pages.dev and text like a // b stay, since only whole lines are comments.
+
+\`\`\`js
+// Comments inside fenced code are copied, so code keeps its own.
+const answer = 42
+\`\`\`
+// A comment at the very end leaves nothing behind.`,
+    age: 6 * DAY + 3 * HOUR,
+  },
+  {
     body: `# Ideas
 
 - Snippet folders

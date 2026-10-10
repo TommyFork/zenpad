@@ -8,5 +8,6 @@ export function useEditorHandle() {
   const replace = useCallback((range: EditorSelection, insert: string) => ref.current?.replace(range, insert) ?? false, [])
   const insert = useCallback((text: string) => ref.current?.insert(text) ?? false, [])
   const toggleChecklist = useCallback(() => ref.current?.toggleChecklist(), [])
-  return { ref, selection, replace, insert, toggleChecklist }
+  const toggleComment = useCallback(() => ref.current?.toggleComment(), [])
+  return { ref, selection, replace, insert, toggleChecklist, toggleComment }
 }

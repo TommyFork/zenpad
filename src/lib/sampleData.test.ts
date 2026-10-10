@@ -42,6 +42,16 @@ describe('buildSampleLibrary', () => {
     expect(copied).not.toContain('"""')
   })
 
+  it('leaves comments out of the copy', () => {
+    const bodies = new Map(library.snippets.map((snippet) => [snippet.name, snippet.body]))
+    const note = library.notes.find((item) => item.body.startsWith('# Comment edge cases'))!
+    const copied = fillIn(note.body, bodies)
+    expect(copied).not.toMatch(/^\s*\/\/ (A comment|Indented)/m)
+    expect(copied).toContain('// Comments inside fenced code are copied')
+    expect(copied).toContain('https://zenpad.pages.dev and text like a // b stay')
+    expect(copied.endsWith('```')).toBe(true)
+  })
+
   it('keeps the folded block edge cases behaving as described', () => {
     const edges = library.notes.find((note) => note.body.startsWith('# Folded block edge cases'))!
     const first = '  The first block named $first wins.\n  $inside = not a definition, just text in the block'

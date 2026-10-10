@@ -1,3 +1,4 @@
+import { stripComments, stripSnippetComments } from './comments'
 import { describeExpansion, expandSnippetParts, expandSnippets, type ExpansionPart } from './snippets'
 
 // Names start with a letter, so prices like $5 are left alone. Case matters: $PR and $pr are different.
@@ -128,13 +129,13 @@ export function wrapInBlock(text: string, from: number, to: number, baseName = '
 }
 
 // The raw values written in the text, from definition lines, blocks, and inline definitions.
-// When a name is set twice, the first one in the text wins.
+// When a name is set twice, the first one in the text wins. Comment lines set nothing.
 export function parseVariables(text: string): Map<string, string> {
   const values = new Map<string, string>()
   const define = (name: string, value: string) => {
     if (!values.has(name)) values.set(name, value)
   }
-  const lines = text.split('\n')
+  const lines = stripComments(text).split('\n')
   const blocks = new Map(parseBlocks(lines).map((block) => [block.open, block]))
   for (let index = 0; index < lines.length; index++) {
     const block = blocks.get(index)
@@ -191,9 +192,11 @@ function prepare(text: string): string {
   )
 }
 
-// The note exactly as it would be copied: definition lines removed, blocks shown in place, snippets expanded, variables filled in.
+// The note exactly as it would be copied: comments and definition lines removed, blocks shown in place, snippets expanded, variables filled in.
 // Snippet text can use the note's variables too, so one snippet can serve many notes.
-export function fillIn(text: string, bodies: ReadonlyMap<string, string>): string {
+export function fillIn(note: string, snippets: ReadonlyMap<string, string>): string {
+  const text = stripComments(note)
+  const bodies = stripSnippetComments(snippets)
   const values = resolveVariables(parseVariables(text), bodies)
   return substituteVariables(expandSnippets(prepare(text), bodies), values).replaceAll(USE_END, '')
 }
@@ -221,19 +224,25 @@ function substituteParts(parts: ExpansionPart[], values: ReadonlyMap<string, str
 }
 
 // The same as fillIn, but keeping track of which text came from which snippet or variable.
-export function fillInParts(text: string, bodies: ReadonlyMap<string, string>): ExpansionPart[] {
+export function fillInParts(note: string, snippets: ReadonlyMap<string, string>): ExpansionPart[] {
+  const text = stripComments(note)
+  const bodies = stripSnippetComments(snippets)
   const values = resolveVariables(parseVariables(text), bodies)
   return substituteParts(expandSnippetParts(prepare(text), bodies), values)
 }
 
 // The variables the copied text actually uses, including ones used only inside snippets.
-export function usedVariableNames(text: string, bodies: ReadonlyMap<string, string>): string[] {
+export function usedVariableNames(note: string, snippets: ReadonlyMap<string, string>): string[] {
+  const text = stripComments(note)
+  const bodies = stripSnippetComments(snippets)
   const defined = parseVariables(text)
   const expanded = expandSnippets(prepare(text), bodies)
   const names = [...expanded.matchAll(variableTokenPattern())].map((match) => match[1]).filter((name) => defined.has(name))
   return [...new Set(names)]
 }
 
-export function describeFillIn(text: string, bodies: ReadonlyMap<string, string>): string {
+export function describeFillIn(note: string, snippets: ReadonlyMap<string, string>): string {
+  const text = stripComments(note)
+  const bodies = stripSnippetComments(snippets)
   return describeExpansion(stripVariableDefinitions(text), bodies, usedVariableNames(text, bodies).length)
 }

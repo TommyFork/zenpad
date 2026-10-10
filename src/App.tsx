@@ -126,6 +126,7 @@ export default function App() {
     replace: replaceInEditor,
     insert: insertInEditor,
     toggleChecklist,
+    toggleComment,
   } = useEditorHandle()
   const [previewKey, setPreviewKey] = useState<string | null>(null)
   const [storagePersisted, setStoragePersisted] = useState<boolean | null>(null)
@@ -418,7 +419,10 @@ export default function App() {
     { id: 'paste-snippet', label: 'Paste snippet text…', icon: 'at', run: startPaste },
     { id: 'extract', label: 'Make a snippet from the selection', icon: 'at', shortcut: `${MOD_LABEL} ⌥ S`, run: startExtract },
     ...(openDoc && !previewing
-      ? [{ id: 'checklist', label: 'Make a checklist', icon: 'checklist' as const, shortcut: `${MOD_LABEL} ⇧ L`, run: toggleChecklist }]
+      ? [
+          { id: 'checklist', label: 'Make a checklist', icon: 'checklist' as const, shortcut: `${MOD_LABEL} ⇧ L`, run: toggleChecklist },
+          { id: 'comment', label: 'Comment out lines (left out when copying)', icon: 'pencil' as const, shortcut: `${MOD_LABEL} /`, run: toggleComment },
+        ]
       : []),
     { id: 'copy', label: 'Copy with snippets filled in', icon: 'copy', shortcut: `${MOD_LABEL} ↵`, run: workspace.copyCurrent },
     {

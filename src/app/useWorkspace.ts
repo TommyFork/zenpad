@@ -206,12 +206,14 @@ export function useWorkspace({ notes, snippets }: Library, showToast: ShowToast)
     if (openSnippet) bodies.set(openSnippet.name, textRef.current)
 
     const source = textRef.current
-    if (source.trim() === '') {
+    const copied = fillIn(source, bodies)
+    // A note of only comments has nothing to copy either.
+    if (copied.trim() === '') {
       showToast('Nothing to copy yet.')
       return
     }
     try {
-      await navigator.clipboard.writeText(fillIn(source, bodies))
+      await navigator.clipboard.writeText(copied)
     } catch (error) {
       showToast(`Couldn't copy: ${errorMessage(error)}`)
       return
