@@ -1,3 +1,5 @@
+import { stripComments } from './comments'
+
 const NAME = '[a-z0-9](?:[a-z0-9_-]*[a-z0-9])?'
 
 // "@" not preceded by a word character, so emails like me@site.com are ignored.
@@ -97,8 +99,9 @@ export function flattenExpansion(parts: ExpansionPart[]): { text: string; spans:
   return { text, spans }
 }
 
+// A mention in a comment doesn't count as a use, since it's never filled in. Renaming still updates it.
 export function referencedSnippetNames(text: string): string[] {
-  const names = [...text.matchAll(snippetTokenPattern())].map((match) => match[1])
+  const names = [...stripComments(text).matchAll(snippetTokenPattern())].map((match) => match[1])
   return [...new Set(names)]
 }
 
@@ -295,7 +298,9 @@ export interface ReferenceExcerpt {
 }
 
 // The text around the first mention of a snippet, clipped to whole words, for a hover preview.
-export function referenceExcerpt(text: string, name: string, radius = 140): ReferenceExcerpt | null {
+// Comments are left out, like in the copy.
+export function referenceExcerpt(note: string, name: string, radius = 140): ReferenceExcerpt | null {
+  const text = stripComments(note)
   const matches = [...text.matchAll(snippetTokenPattern())].filter((match) => match[1] === name)
   const [first] = matches
   if (!first) return null

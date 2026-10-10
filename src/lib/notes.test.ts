@@ -11,6 +11,11 @@ describe('noteTitle', () => {
     expect(notePreview('Trip\n- [x] Pack\n- [ ] Go')).toBe('Pack Go')
   })
 
+  it('skips comment lines', () => {
+    expect(noteTitle('// trim this later\n# Launch email\n// reminder\nHi all')).toBe('Launch email')
+    expect(notePreview('// trim this later\n# Launch email\n// reminder\nHi all')).toBe('Hi all')
+  })
+
   it('falls back to Untitled for empty notes', () => {
     expect(noteTitle('   \n ')).toBe('Untitled')
   })

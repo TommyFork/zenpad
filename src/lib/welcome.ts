@@ -15,9 +15,12 @@ Snippets stay linked. Edit a snippet once and every note that uses it picks up t
 
 Variables hold a value you mention more than once. This note is about $topic{writing prompts}. Change the words in the braces and every $topic follows.
 
+// Lines that start with // are comments: notes to yourself that are left out when you copy.
+
 A few keys worth knowing:
 ⌘ K  search and commands
 ⌘ Enter  copy, with snippets filled in
+⌘ /  turn lines into comments, or back
 ⌘ \\  show or hide the sidebar
 ⌘ click a snippet to open it, or a variable to change it
 

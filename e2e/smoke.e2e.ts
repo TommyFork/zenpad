@@ -353,3 +353,27 @@ test('pastes a snippet as text from the @ list and the command palette', async (
   ])
   expect(errors).toEqual([])
 })
+
+test('leaves comments out of the preview and the copy', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await page.goto('/')
+  const editor = page.locator('.cm-content')
+  await expect(editor).toContainText('Welcome to Zenpad')
+  await expect(page.locator('.cm-comment-line')).toContainText('notes to yourself')
+
+  await editor.click()
+  await page.keyboard.press('ControlOrMeta+End')
+  await page.keyboard.type('\nA private reminder')
+  await page.keyboard.press('ControlOrMeta+Slash')
+  await expect(page.locator('.cm-comment-line', { hasText: '// A private reminder' })).toBeVisible()
+
+  await page.keyboard.press('ControlOrMeta+Enter')
+  const copied = await page.evaluate(() => navigator.clipboard.readText())
+  expect(copied).toContain('Welcome to Zenpad')
+  expect(copied).not.toContain('notes to yourself')
+  expect(copied).not.toContain('A private reminder')
+
+  await page.keyboard.press('ControlOrMeta+KeyE')
+  await expect(page.locator('.preview-host')).toContainText('Welcome to Zenpad')
+  await expect(page.locator('.preview-host')).not.toContainText('notes to yourself')
+})

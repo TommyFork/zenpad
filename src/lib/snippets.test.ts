@@ -140,6 +140,23 @@ describe('references', () => {
   it('renames only exact matches', () => {
     expect(renameSnippetReferences('@tone @tone-2 @tones me@tone', 'tone', 'voice')).toBe('@voice @tone-2 @tones me@tone')
   })
+
+  it("doesn't count mentions in comments as uses", () => {
+    expect(referencedSnippetNames('// try @a here\nUse @b\n```\n// @c in code\n```')).toEqual(['b', 'c'])
+    const notes = [{ body: '// maybe @tone\nHello' }]
+    const snippets = [{ name: 'tone', body: 'Be brief.' }, { name: 'intro', body: '// @tone later' }]
+    expect(countSnippetReferences(notes, snippets).get('tone')).toBeUndefined()
+    expect(snippetUsers('tone', notes, snippets)).toEqual({ notes: [], snippets: [] })
+    expect(snippetParents(notes, snippets).has('tone')).toBe(false)
+  })
+
+  it('still renames mentions in comments', () => {
+    expect(renameSnippetReferences('// try @tone\n@tone', 'tone', 'voice')).toBe('// try @voice\n@voice')
+  })
+
+  it('takes excerpts from outside comments', () => {
+    expect(referenceExcerpt('// see @tone\nSay hi. @tone', 'tone')).toEqual({ before: 'Say hi. ', after: '', count: 1 })
+  })
 })
 
 describe('describeExpansion', () => {

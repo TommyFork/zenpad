@@ -140,6 +140,9 @@ const zenTheme = EditorView.theme({
   },
   // Done items step back rather than being crossed out, so the list stays easy to read.
   '.cm-line.cm-task-line.is-done': { color: 'var(--muted)' },
+  // Comments are notes to yourself and never copied, so they sit back like code comments do.
+  '.cm-line.cm-comment-line': { color: 'var(--muted)', fontStyle: 'italic' },
+  '.cm-line.cm-comment-line *': { color: 'inherit' },
   '.cm-line.cm-task-line.is-done .cm-task-number': { opacity: '0.7' },
   '.cm-tooltip': {
     border: '1px solid var(--line)',
