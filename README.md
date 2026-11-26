@@ -46,13 +46,13 @@ Zenpad was built for writing AI prompts, but it works for any writing where you 
 | `⌘ ⇧ Enter` | Check off the task the cursor is on |
 | `⌘ /` | Turn the selected lines into comments, or back |
 | `⌘ \` | Show or hide the sidebar |
-| `⌘ ⌥ N` | New note |
+| `⌘ ⌥ N` | New note. `⌘ N` also works when the browser passes it to Zenpad. |
 | `⇧ Enter` in the `@` list | Paste the snippet's text instead of linking it |
 | `⌘ click` an `@snippet` | Open it, or create it if it doesn't exist |
 | `⌘ click` a `$variable` | Jump to its value, ready to change |
 | `⌘ F` | Find in the current note |
 
-On Windows and Linux, use `Ctrl` in place of `⌘`.
+On Windows and Linux, use `Ctrl` in place of `⌘` and `Alt` in place of `⌥`.
 
 ## Snippets and variables
 

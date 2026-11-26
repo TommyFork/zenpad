@@ -383,6 +383,13 @@ export default function App() {
   useEffect(() => {
     shortcuts.current = (event) => {
       if (!hasModifier(event)) return
+      if (event.code === 'KeyN') {
+        if (event.shiftKey || event.isComposing) return
+        event.preventDefault()
+        event.stopPropagation()
+        if (!event.repeat) void workspace.newNote()
+        return
+      }
       // ⌘ ⇧ Enter checks off a task in the editor, rather than copying.
       if (event.shiftKey && event.code === 'Enter') return
       const handlers: Record<string, () => void> = {
@@ -393,7 +400,6 @@ export default function App() {
         Enter: () => void workspace.copyCurrent(),
         KeyE: togglePreview,
         Backslash: () => setSidebar(!sidebarVisible),
-        'Alt+KeyN': () => void workspace.newNote(),
         'Alt+KeyS': startExtract,
       }
       const run = handlers[event.altKey ? `Alt+${event.code}` : event.code]

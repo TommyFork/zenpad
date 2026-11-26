@@ -28,6 +28,20 @@ test('loads the welcome note without errors or CSP violations', async ({ page })
   expect(errors).toEqual([])
 })
 
+test('creates and focuses a new note with the plain new-note shortcut', async ({ page }) => {
+  await page.goto('/')
+  const editor = page.locator('.cm-content')
+  await expect(editor).toContainText('Welcome to Zenpad')
+  await editor.focus()
+
+  await page.keyboard.press('ControlOrMeta+Shift+KeyN')
+  await expect(editor).toContainText('Welcome to Zenpad')
+
+  await page.keyboard.press('ControlOrMeta+KeyN')
+  await expect(editor.getByText('Start writing…', { exact: true })).toBeVisible()
+  await expect(editor).toBeFocused()
+})
+
 test('keeps what you write after a reload', async ({ page }) => {
   await page.goto('/')
   const editor = page.locator('.cm-content')
